@@ -1,3 +1,4 @@
+use super::state::PriceUpdate;
 use futures_util::StreamExt;
 use serde::Deserialize;
 use tokio::sync::broadcast::Sender;
@@ -11,13 +12,6 @@ struct BinanceTrade {
     quantity: String,
     #[serde(rename = "T")]
     timestamp: u64,
-}
-
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct PriceUpdate {
-    pub source: String,
-    pub pair: String,
-    pub price: f64,
 }
 
 pub async fn run_binance_connector(tx: Sender<PriceUpdate>) {
