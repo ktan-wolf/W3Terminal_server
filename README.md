@@ -7,13 +7,17 @@ It provides a unified interface to monitor fragmented liquidity across **Central
 
 ---
 
-## 🚀 Current Status (End of Sprint 2)
+## 🚀 Current Status
 
 🟢 **In Active Development**
 
-The terminal successfully:
-- Streams and normalizes **live price data** from **Binance (CEX)** and a **Solana (DEX)** liquidity pool (Raydium).
-- Displays unified, real-time data in a single dashboard.
+The terminal now:
+- Streams and normalizes **live price data** from multiple exchanges:
+  - **Binance (CEX)** — `SOL/USDT`
+  - **Jupiter (DEX)** — `SOL/USDC` via API
+  - **Raydium (DEX)** — `SOL/USDC` on-chain liquidity pool
+- Calculates and displays **arbitrage opportunities** across all sources in real-time.
+- Sends **both individual prices and arbitrage info** to the frontend over WebSocket.
 
 ---
 
@@ -24,8 +28,46 @@ The terminal successfully:
 - Designed for low-latency, high-throughput real-time data handling.
 
 ### 📡 Real-Time WebSocket Broadcasting
-- A concurrent-safe **WebSocket server** broadcasts normalized price updates to all connected clients.
+- A concurrent-safe **WebSocket server** broadcasts:
+  - **Normalized price updates** from all connected exchanges (Binance, Jupiter, Raydium)
+  - **Arbitrage opportunities** with best buy/sell source and spread percentage.
 
 ### 💱 Multi-Source Data Pipelines
-- **CEX Data Pipeline:** Streams live trades from **Binance** WebSocket (`sol/usdt`).
-- **DEX Data Pipeline:** Streams on-chain updates from **Raydium** (Solana `SOL/USDC` pool) using `solana-pubsub-client`.
+- **CEX Data Pipeline:** Streams live trades from **Binance** WebSocket (`SOL/USDT`).
+- **DEX Data Pipeline:** Streams prices from **Raydium** on-chain (`SOL/USDC`) and **Jupiter API V3** (`SOL/USDC`).
+- Normalizes all prices into a single `PriceUpdate` structure for unified processing.
+
+### 📊 Arbitrage Engine
+- Continuously compares prices across **Binance**, **Jupiter**, and **Raydium**.
+- Computes:
+  - `best_buy_source` and `best_buy_price`
+  - `best_sell_source` and `best_sell_price`
+  - `spread_percent`  
+- Broadcasts **ArbitrageFeed** to all connected clients in real-time.
+
+### 🖥 Frontend Dashboard
+- Built with **Next.js** (App Router) and **React Hooks**.
+- Displays:
+  - Live prices from all exchanges
+  - Real-time arbitrage opportunities
+- Automatically updates when any price changes or arbitrage arises.
+
+---
+
+## 🔧 Tech Stack
+
+| Layer           | Technology                                      |
+|-----------------|------------------------------------------------|
+| Backend         | Rust, Axum, Tokio, tokio-tungstenite          |
+| Solana DEX Data | solana-client, solana-pubsub-client           |
+| Frontend        | Next.js, React, TypeScript                     |
+| Real-Time Comms | WebSocket (broadcast channels in Rust)        |
+| APIs            | Jupiter V3 API for DEX price feeds            |
+
+---
+
+## ⚡ Next Steps
+- Sprint 4: Store historical price data and visualize charts (TimescaleDB + TradingView lightweight-charts).  
+- Sprint 5: Implement one-click Solana trade execution using Jupiter API + wallet adapter.  
+- Sprint 6: UI/UX polish, responsive design, multiple exchange integrations, and deployment.
+
