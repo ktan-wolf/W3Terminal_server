@@ -13,6 +13,15 @@ pub use raydium::*;
 pub mod coinbase;
 pub use coinbase::*;
 
+pub mod kraken;
+pub use kraken::*;
+
+pub mod okx;
+pub use okx::*;
+
+pub mod bitfinex;
+pub use bitfinex::*;
+
 pub mod arbitrage_engine;
 pub use arbitrage_engine::*;
 
