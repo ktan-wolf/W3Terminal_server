@@ -11,11 +11,14 @@ use connectors::{
     arbitrage_engine::{ArbitrageEngine, ArbitrageFeed},
     binance::run_binance_connector,
     bitfinex::run_bitfinex_connector,
+    bitget::run_bitget_connector,
     bybit::run_bybit_connector,
     coinbase::run_coinbase_connector,
     db::{HistoricalPrice, fetch_historical, init_db, insert_price},
+    htx::run_htx_connector,
     jupiter::run_dex_connector,
     kraken::run_kraken_connector,
+    kucoin::run_kucoin_connector,
     okx::run_okx_connector,
     raydium::run_raydium_connector,
     state::PriceUpdate,
@@ -46,6 +49,9 @@ async fn main() {
     tokio::spawn(run_okx_connector(tx_price.clone()));
     tokio::spawn(run_bitfinex_connector(tx_price.clone()));
     tokio::spawn(run_bybit_connector(tx_price.clone()));
+    tokio::spawn(run_kucoin_connector(tx_price.clone()));
+    tokio::spawn(run_bitget_connector(tx_price.clone()));
+    tokio::spawn(run_htx_connector(tx_price.clone()));
 
     // Spawn arbitrage engine
     tokio::spawn({

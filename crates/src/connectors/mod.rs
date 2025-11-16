@@ -30,3 +30,12 @@ pub use arbitrage_engine::*;
 
 pub mod db;
 pub use db::*;
+
+pub mod kucoin;
+pub use kucoin::*;
+
+pub mod bitget;
+pub use bitget::*;
+
+pub mod htx;
+pub use htx::*;
