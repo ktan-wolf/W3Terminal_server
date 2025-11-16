@@ -9,16 +9,21 @@ use axum::{
 use connectors::{
     arbitrage_engine::{ArbitrageEngine, ArbitrageFeed},
     binance::run_binance_connector,
+    db::{init_db, insert_price},
     jupiter::run_dex_connector,
     raydium::run_raydium_connector,
     state::PriceUpdate,
 };
 use futures_util::{SinkExt, StreamExt};
+use sqlx::PgPool;
 use std::net::SocketAddr;
 use tokio::{net::TcpListener, sync::broadcast};
 
 #[tokio::main]
 async fn main() {
+    let database_url = "postgresql://ktan:whoami@localhost:5432/web3terminal";
+    let db_pool = init_db(&database_url).await;
+
     // Channel for PriceUpdate from connectors
     let (tx_price, rx_price) = broadcast::channel::<PriceUpdate>(200);
 
@@ -33,11 +38,20 @@ async fn main() {
     // Spawn arbitrage engine
     tokio::spawn({
         let tx_arb = tx_arb.clone();
+
+        let db_pool = db_pool.clone();
+
         async move {
             let mut engine = ArbitrageEngine::new(tx_arb);
             let mut rx_price = rx_price;
 
             while let Ok(update) = rx_price.recv().await {
+                let db_pool = db_pool.clone();
+                let update_clone = update.clone();
+                tokio::spawn(async move {
+                    insert_price(&db_pool, &update_clone).await;
+                });
+
                 engine.process_price(update);
             }
         }
