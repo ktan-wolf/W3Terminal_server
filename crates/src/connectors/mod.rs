@@ -22,6 +22,9 @@ pub use okx::*;
 pub mod bitfinex;
 pub use bitfinex::*;
 
+pub mod bybit;
+pub use bybit::*;
+
 pub mod arbitrage_engine;
 pub use arbitrage_engine::*;
 
