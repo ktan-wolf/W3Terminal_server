@@ -1,7 +1,8 @@
 mod connectors;
 
+use axum::extract::Extension;
 use axum::{
-    Router,
+    Json, Router,
     extract::ws::{Message, WebSocket, WebSocketUpgrade},
     response::IntoResponse,
     routing::get,
@@ -9,13 +10,14 @@ use axum::{
 use connectors::{
     arbitrage_engine::{ArbitrageEngine, ArbitrageFeed},
     binance::run_binance_connector,
-    db::{init_db, insert_price},
+    db::{HistoricalPrice, fetch_historical, init_db, insert_price},
     jupiter::run_dex_connector,
     raydium::run_raydium_connector,
     state::PriceUpdate,
 };
 use futures_util::{SinkExt, StreamExt};
 use sqlx::PgPool;
+use std::collections::HashMap;
 use std::net::SocketAddr;
 use tokio::{net::TcpListener, sync::broadcast};
 
@@ -38,7 +40,6 @@ async fn main() {
     // Spawn arbitrage engine
     tokio::spawn({
         let tx_arb = tx_arb.clone();
-
         let db_pool = db_pool.clone();
 
         async move {
@@ -48,6 +49,8 @@ async fn main() {
             while let Ok(update) = rx_price.recv().await {
                 let db_pool = db_pool.clone();
                 let update_clone = update.clone();
+
+                // Insert into DB
                 tokio::spawn(async move {
                     insert_price(&db_pool, &update_clone).await;
                 });
@@ -57,17 +60,21 @@ async fn main() {
         }
     });
 
-    // WebSocket route for combined feed
-    let app = Router::new().route(
-        "/ws/arb",
-        get({
-            let tx_arb = tx_arb.clone();
-            move |ws: WebSocketUpgrade| ws_handler(ws, tx_arb.clone())
-        }),
-    );
+    // Build router with WebSocket and historical HTTP endpoint
+    let app = Router::new()
+        .route(
+            "/ws/arb",
+            get({
+                let tx_arb = tx_arb.clone();
+                move |ws: WebSocketUpgrade| ws_handler(ws, tx_arb.clone())
+            }),
+        )
+        .route("/historical", get(historical_prices_handler))
+        .layer(Extension(db_pool.clone())); // pass db_pool to handlers
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8081));
     println!("✅ Web3 Terminal Arbitrage feed running at ws://{addr}/ws/arb");
+    println!("📊 Historical prices endpoint running at http://{addr}/historical?pair=SOL/USDT");
 
     let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -106,4 +113,16 @@ async fn handle_socket(mut socket: WebSocket, mut rx: broadcast::Receiver<Arbitr
     }
 
     println!("❌ Client disconnected");
+}
+
+async fn historical_prices_handler(
+    axum::extract::Query(params): axum::extract::Query<HashMap<String, String>>,
+    Extension(db_pool): Extension<PgPool>,
+) -> Json<Vec<HistoricalPrice>> {
+    let pair = match params.get("pair") {
+        Some(p) => p.as_str(),
+        None => "SOL/USDT",
+    };
+    let data = fetch_historical(&db_pool, pair).await;
+    Json(data)
 }
