@@ -10,6 +10,9 @@ pub use jupiter::*;
 pub mod raydium;
 pub use raydium::*;
 
+pub mod coinbase;
+pub use coinbase::*;
+
 pub mod arbitrage_engine;
 pub use arbitrage_engine::*;
 

@@ -10,6 +10,7 @@ use axum::{
 use connectors::{
     arbitrage_engine::{ArbitrageEngine, ArbitrageFeed},
     binance::run_binance_connector,
+    coinbase::run_coinbase_connector,
     db::{HistoricalPrice, fetch_historical, init_db, insert_price},
     jupiter::run_dex_connector,
     raydium::run_raydium_connector,
@@ -36,6 +37,7 @@ async fn main() {
     tokio::spawn(run_binance_connector(tx_price.clone()));
     tokio::spawn(run_dex_connector(tx_price.clone()));
     tokio::spawn(run_raydium_connector(tx_price.clone()));
+    tokio::spawn(run_coinbase_connector(tx_price.clone()));
 
     // Spawn arbitrage engine
     tokio::spawn({
