@@ -9,6 +9,7 @@ use axum::{
 };
 use connectors::{
     arbitrage_engine::{ArbitrageEngine, ArbitrageFeed},
+    backpack::run_backpack_connector,
     binance::run_binance_connector,
     bitfinex::run_bitfinex_connector,
     bitget::run_bitget_connector,
@@ -54,6 +55,7 @@ async fn main() {
     tokio::spawn(run_bitget_connector(tx_price.clone()));
     tokio::spawn(run_htx_connector(tx_price.clone()));
     tokio::spawn(run_orca_connector(tx_price.clone()));
+    tokio::spawn(run_backpack_connector(tx_price.clone()));
 
     // Spawn arbitrage engine
     tokio::spawn({
