@@ -6,7 +6,7 @@ use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 pub async fn run_bitfinex_connector(tx: Sender<PriceUpdate>) {
     let url = "wss://api-pub.bitfinex.com/ws/2";
-    println!("[Bitfinex] connecting : {url}");
+    println!("[Bitfinex] connecting: {}", url);
 
     let (mut ws, _) = match connect_async(url).await {
         Ok(res) => res,
@@ -18,68 +18,66 @@ pub async fn run_bitfinex_connector(tx: Sender<PriceUpdate>) {
 
     println!("[Bitfinex] ✅ Connected");
 
-    // Subscribe to ticker channel (better & more stable)
+    // Subscribe to SOL/USD ticker
     let sub = serde_json::json!({
         "event": "subscribe",
         "channel": "ticker",
         "symbol": "tSOLUSD"
     });
 
-    ws.send(Message::Text(sub.to_string().into()))
-        .await
-        .unwrap();
+    if let Err(e) = ws.send(Message::Text(sub.to_string().into())).await {
+        eprintln!("[Bitfinex] ❌ Subscription failed: {:?}", e);
+        return;
+    }
 
     println!("[Bitfinex] 📡 Subscribed to TICKER SOLUSD");
 
     while let Some(msg) = ws.next().await {
-        let msg = match msg {
-            Ok(m) => m,
-            Err(_) => continue,
-        };
+        match msg {
+            Ok(Message::Text(text)) => {
+                if let Ok(parsed) = serde_json::from_str::<Value>(&text) {
+                    // Skip event messages
+                    if parsed.get("event").is_some() {
+                        continue;
+                    }
 
-        if !msg.is_text() {
-            continue;
-        }
+                    // Should be an array
+                    if let Some(arr) = parsed.as_array() {
+                        // Ignore heartbeat ["hb"]
+                        if arr.len() == 2 && arr[1] == "hb" {
+                            continue;
+                        }
 
-        let text = msg.to_text().unwrap();
-
-        let parsed: Value = match serde_json::from_str(text) {
-            Ok(v) => v,
-            Err(_) => continue,
-        };
-
-        // Ticker responses are arrays
-        if !parsed.is_array() {
-            continue;
-        }
-
-        let arr = parsed.as_array().unwrap();
-
-        // Format: [ chanId, [ BID, BID_SIZE, ASK, ASK_SIZE, DAILY_CHANGE, DAILY_CHANGE_PERC,
-        //          LAST_PRICE, VOLUME, HIGH, LOW ] ]
-        if arr.len() < 2 {
-            continue;
-        }
-
-        let data = &arr[1];
-
-        if !data.is_array() {
-            continue;
-        }
-
-        let inner = data.as_array().unwrap();
-
-        // LAST PRICE = index 6
-        if inner.len() > 6 {
-            if let Some(price) = inner[6].as_f64() {
-                // println!("[Bitfinex] price = {}", price);
-
-                let _ = tx.send(PriceUpdate {
-                    source: "Bitfinex".to_string(),
-                    pair: "SOL/USD".to_string(),
-                    price,
-                });
+                        // The second element contains ticker data
+                        if arr.len() >= 2 {
+                            if let Some(data) = arr[1].as_array() {
+                                // LAST_PRICE is at index 6
+                                if data.len() > 6 {
+                                    if let Some(price) = data[6].as_f64() {
+                                        let _ = tx.send(PriceUpdate {
+                                            source: "Bitfinex".to_string(),
+                                            pair: "SOL/USD".to_string(),
+                                            price,
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
+            Ok(Message::Ping(p)) => {
+                let _ = ws.send(Message::Pong(p)).await;
+            }
+            Ok(Message::Close(_)) => break,
+            Err(e) => {
+                eprintln!("[Bitfinex] ❌ WS error: {:?}", e);
+                break;
+            }
+            _ => {}
         }
     }
+
+    eprintln!("[Bitfinex] ⚠️ Connector stopped. Reconnecting...");
 }
+

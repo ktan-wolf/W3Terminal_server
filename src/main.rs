@@ -20,6 +20,7 @@ use connectors::{
     kraken::run_kraken_connector,
     kucoin::run_kucoin_connector,
     okx::run_okx_connector,
+    orca::run_orca_connector,
     raydium::run_raydium_connector,
     state::PriceUpdate,
 };
@@ -52,6 +53,7 @@ async fn main() {
     tokio::spawn(run_kucoin_connector(tx_price.clone()));
     tokio::spawn(run_bitget_connector(tx_price.clone()));
     tokio::spawn(run_htx_connector(tx_price.clone()));
+    tokio::spawn(run_orca_connector(tx_price.clone()));
 
     // Spawn arbitrage engine
     tokio::spawn({
