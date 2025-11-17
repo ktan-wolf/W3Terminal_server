@@ -122,7 +122,6 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>) {
         }
 
         eprintln!("HTX: disconnected. Reconnecting in 5s...");
-        sleep(Duration::from_secs(5)).await;
+        sleep(Duration::from_millis(500)).await;
     }
 }
-

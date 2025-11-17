@@ -80,4 +80,3 @@ pub async fn run_bitfinex_connector(tx: Sender<PriceUpdate>) {
 
     eprintln!("[Bitfinex] ⚠️ Connector stopped. Reconnecting...");
 }
-

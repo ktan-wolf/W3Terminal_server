@@ -61,7 +61,6 @@ pub async fn run_raydium_connector(tx: Sender<PriceUpdate>) {
             }
         }
 
-        //sleep(Duration::from_secs(2)).await;
+        sleep(Duration::from_millis(500)).await;
     }
 }
-
