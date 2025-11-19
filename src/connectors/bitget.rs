@@ -23,32 +23,35 @@ struct BitgetArg {
 
 #[derive(Debug, Deserialize)]
 struct BitgetTicker {
-    lastPr: String, // IMPORTANT: Bitget uses lastPr
+    lastPr: String,
 }
 
-pub async fn run_bitget_connector(tx: Sender<PriceUpdate>) {
-    let symbol = "SOLUSDT";
+/// Run the Bitget WebSocket connector for a given pair
+pub async fn run_bitget_connector(tx: Sender<PriceUpdate>, pair: String) {
+    // Bitget uses "SOLUSDT" format, so remove "/" and uppercase
+    let symbol = pair.replace("/", "").to_uppercase();
+    let canonical_pair = pair.clone(); // e.g., "SOL/USDT"
 
     loop {
         println!("🔌 Connecting to Bitget for {}", symbol);
         let ws_url = "wss://ws.bitget.com/v2/ws/public";
 
+        // 1️⃣ Connect to WebSocket
         let (ws_stream, _) = match connect_async(ws_url).await {
-            Ok(s) => s,
+            Ok(stream) => stream,
             Err(e) => {
-                eprintln!("❌ Bitget WS connect failed: {:?}", e);
+                eprintln!("❌ Bitget WS connection failed: {:?}", e);
                 sleep(Duration::from_secs(5)).await;
                 continue;
             }
         };
-
         println!("⚡ Bitget WS connected");
 
         let (write, mut read) = ws_stream.split();
         let write = Arc::new(Mutex::new(write));
 
-        // Subscribe to ticker
-        let sub = serde_json::json!({
+        // 2️⃣ Subscribe to ticker
+        let sub_msg = serde_json::json!({
             "op": "subscribe",
             "args": [{
                 "instType": "SPOT",
@@ -59,24 +62,25 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>) {
 
         {
             let mut w = write.lock().await;
-            let _ = w.send(Message::Text(sub.to_string().into())).await;
+            if let Err(e) = w.send(Message::Text(sub_msg.to_string().into())).await {
+                eprintln!("❌ Failed to send subscription: {:?}", e);
+            }
         }
+        println!("📡 Subscribed to Bitget ticker {}", canonical_pair);
 
-        println!("📡 Subscribed to Bitget ticker {}", symbol);
-
-        // Spawn ping task (every 15s)
+        // 3️⃣ Ping task (keep connection alive)
         let ping_write = Arc::clone(&write);
         tokio::spawn(async move {
             loop {
                 sleep(Duration::from_secs(15)).await;
                 let mut w = ping_write.lock().await;
                 if w.send(Message::Ping(Bytes::new())).await.is_err() {
-                    break; // connection closed
+                    break; // WS closed
                 }
             }
         });
 
-        // Read loop
+        // 4️⃣ Read loop
         while let Some(msg) = read.next().await {
             match msg {
                 Ok(Message::Text(text)) => {
@@ -86,7 +90,7 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>) {
                                 if let Ok(price) = tick.lastPr.parse::<f64>() {
                                     let _ = tx.send(PriceUpdate {
                                         source: "Bitget".to_string(),
-                                        pair: "SOL/USDT".to_string(),
+                                        pair: canonical_pair.clone(),
                                         price,
                                     });
                                 }
@@ -101,6 +105,7 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>) {
                 }
 
                 Ok(Message::Close(_)) => break,
+
                 Err(e) => {
                     eprintln!("❌ Bitget WS error: {:?}", e);
                     break;
@@ -110,7 +115,11 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>) {
             }
         }
 
-        eprintln!("⚠️ Bitget connector disconnected. Reconnecting in 5s...");
+        eprintln!(
+            "⚠️ Bitget connector for {} disconnected. Reconnecting in 5s...",
+            canonical_pair
+        );
         sleep(Duration::from_secs(5)).await;
     }
 }
+

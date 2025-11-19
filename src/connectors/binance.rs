@@ -14,13 +14,20 @@ struct BinanceTrade {
     timestamp: u64,
 }
 
-pub async fn run_binance_connector(tx: Sender<PriceUpdate>) {
-    let url = "wss://stream.binance.com:9443/ws/solusdt@trade";
-    println!("[Binance] connecting : {url}");
+// UPDATED SIGNATURE: It now accepts the pair string
+pub async fn run_binance_connector(tx: Sender<PriceUpdate>, pair: String) {
+    
+    // Convert canonical pair "BTC/USDT" to binance format "btcusdt"
+    let binance_symbol = pair.to_lowercase().replace("/", "");
+    
+    // Use the pair to construct the dynamic WebSocket URL
+    let url = format!("wss://stream.binance.com:9443/ws/{}@trade", binance_symbol);
+    
+    println!("[Binance] connecting to pair: {}: {url}", pair);
 
-    match connect_async(url).await {
+    match connect_async(&url).await {
         Ok((mut ws_stream, _)) => {
-            print!("[Binance] ✅ Connected");
+            println!("[Binance] ✅ Connected to {}", pair);
             while let Some(msg) = ws_stream.next().await {
                 if let Ok(msg) = msg {
                     if msg.is_text() {
@@ -28,9 +35,10 @@ pub async fn run_binance_connector(tx: Sender<PriceUpdate>) {
                             serde_json::from_str::<BinanceTrade>(msg.to_text().unwrap())
                         {
                             if let Ok(price) = parsed.price.parse::<f64>() {
+                                // Use the requested pair for the PriceUpdate
                                 let _ = tx.send(PriceUpdate {
                                     source: "Binance".to_string(),
-                                    pair: "SOL/USDT".to_string(),
+                                    pair: pair.clone(), // Use the requested pair
                                     price,
                                 });
                             }
@@ -39,6 +47,6 @@ pub async fn run_binance_connector(tx: Sender<PriceUpdate>) {
                 }
             }
         }
-        Err(e) => eprintln!("[Binance] ❌ Connection error: {:?}", e),
+        Err(e) => eprintln!("[Binance] ❌ Connection error for {}: {:?}", pair, e),
     }
 }

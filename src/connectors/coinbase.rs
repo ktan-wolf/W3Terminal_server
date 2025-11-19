@@ -1,6 +1,6 @@
 use super::state::PriceUpdate;
 use futures_util::{SinkExt, StreamExt};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize}; // Serialize is needed for the JSON subscription message
 use tokio::sync::broadcast::Sender;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
@@ -14,27 +14,50 @@ struct CoinbaseMatch {
     time: Option<String>,
 }
 
-pub async fn run_coinbase_connector(tx: Sender<PriceUpdate>) {
+pub async fn run_coinbase_connector(tx: Sender<PriceUpdate>, pair: String) {
     let url = "wss://ws-feed.exchange.coinbase.com";
-    println!("[Coinbase] connecting : {url}");
+
+    // Store the original requested pair for output (e.g., "BTC/USDC")
+    let canonical_pair = pair.clone();
+
+    // 1. DERIVE PRODUCT ID: "BTC/USDC" -> "BTC-USDC"
+    let mut coinbase_product_id = pair.replace("/", "-");
+
+    // 2. FALLBACK LOGIC: If requesting USDC, attempt to subscribe to the more common USD product.
+    // The price data is essentially the same, but the feed is active.
+    if coinbase_product_id.ends_with("-USDC") {
+        let base_currency = coinbase_product_id.trim_end_matches("-USDC");
+        coinbase_product_id = format!("{}-USD", base_currency);
+        // Log the change for debugging
+        println!(
+            "[Coinbase] ⚠️ Falling back to product ID: {} (Requested: {})",
+            coinbase_product_id, canonical_pair
+        );
+    }
+
+    println!(
+        "[Coinbase] connecting to pair: {} (Product ID: {})",
+        canonical_pair, coinbase_product_id
+    );
 
     match connect_async(url).await {
         Ok((mut ws_stream, _)) => {
             println!("[Coinbase] ✅ Connected");
 
-            // Subscribe to SOL-USD trade matches
+            // Subscribe using the potentially modified product ID
             let subscribe_msg = serde_json::json!({
                 "type": "subscribe",
-                "product_ids": ["SOL-USD"],
+                "product_ids": [coinbase_product_id], // Use the dynamically determined ID
                 "channels": ["matches"]
             });
 
-            ws_stream
+            if ws_stream
                 .send(Message::text(subscribe_msg.to_string()))
                 .await
-                .unwrap();
-
-            println!("[Coinbase] 📡 Subscribed to SOL-USD trades");
+                .is_ok()
+            {
+                println!("[Coinbase] 📡 Subscribed to {} trades", canonical_pair);
+            }
 
             while let Some(msg) = ws_stream.next().await {
                 if let Ok(msg) = msg {
@@ -47,7 +70,8 @@ pub async fn run_coinbase_connector(tx: Sender<PriceUpdate>) {
                                     if let Ok(price) = price_str.parse::<f64>() {
                                         let _ = tx.send(PriceUpdate {
                                             source: "Coinbase".to_string(),
-                                            pair: "SOL/USD".to_string(),
+                                            // 3. Use the original requested pair for output
+                                            pair: canonical_pair.clone(),
                                             price,
                                         });
                                     }
@@ -59,7 +83,11 @@ pub async fn run_coinbase_connector(tx: Sender<PriceUpdate>) {
             }
         }
         Err(e) => {
-            eprintln!("[Coinbase] ❌ Connection error: {:?}", e);
+            eprintln!(
+                "[Coinbase] ❌ Connection error for {}: {:?}",
+                canonical_pair, e
+            );
         }
     }
 }
+

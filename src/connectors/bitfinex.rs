@@ -1,36 +1,71 @@
 use super::state::PriceUpdate;
 use futures_util::{SinkExt, StreamExt};
-use serde_json::Value;
+use serde_json::{Value, json};
 use tokio::sync::broadcast::Sender;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
-pub async fn run_bitfinex_connector(tx: Sender<PriceUpdate>) {
+// Helper function to map canonical pair (e.g., BTC/USDC) to Bitfinex symbol (e.g., tBTCUSD)
+fn to_bitfinex_symbol(pair: &str) -> String {
+    let parts: Vec<&str> = pair.split('/').collect();
+    if parts.len() != 2 {
+        return format!("t{}", pair.replace("/", ""));
+    }
+
+    let base = parts[0];
+    let quote = parts[1];
+
+    // Convert to Bitfinex's tSYMBOL format
+    let symbol = match (base, quote) {
+        (b, "USD") => format!("t{b}USD"),
+        (b, "USDT") => format!("t{b}:USDT"),
+        (b, "USDC") => format!("t{b}:USDC"),
+        (b, q) => format!("t{b}{q}"),
+    };
+
+    symbol.to_uppercase()
+}
+
+pub async fn run_bitfinex_connector(tx: Sender<PriceUpdate>, pair: String) {
     let url = "wss://api-pub.bitfinex.com/ws/2";
-    println!("[Bitfinex] connecting: {}", url);
+
+    // 1. Derive Bitfinex symbol from the canonical pair
+    let bitfinex_symbol = to_bitfinex_symbol(&pair);
+    let canonical_pair = pair.clone();
+
+    println!(
+        "[Bitfinex] connecting to pair: {} (Symbol: {})",
+        canonical_pair, bitfinex_symbol
+    );
 
     let (mut ws, _) = match connect_async(url).await {
         Ok(res) => res,
         Err(e) => {
-            eprintln!("[Bitfinex] ❌ Connection error: {:?}", e);
+            eprintln!(
+                "[Bitfinex] ❌ Connection error for {}: {:?}",
+                canonical_pair, e
+            );
             return;
         }
     };
 
-    println!("[Bitfinex] ✅ Connected");
+    println!("[Bitfinex] ✅ Connected to {}", canonical_pair);
 
-    // Subscribe to SOL/USD ticker
-    let sub = serde_json::json!({
+    // 2. Subscribe using the dynamic Bitfinex symbol
+    let sub = json!({
         "event": "subscribe",
         "channel": "ticker",
-        "symbol": "tSOLUSD"
+        "symbol": bitfinex_symbol
     });
 
     if let Err(e) = ws.send(Message::Text(sub.to_string().into())).await {
-        eprintln!("[Bitfinex] ❌ Subscription failed: {:?}", e);
+        eprintln!(
+            "[Bitfinex] ❌ Subscription failed for {}: {:?}",
+            canonical_pair, e
+        );
         return;
     }
 
-    println!("[Bitfinex] 📡 Subscribed to TICKER SOLUSD");
+    println!("[Bitfinex] 📡 Subscribed to TICKER {}", canonical_pair);
 
     while let Some(msg) = ws.next().await {
         match msg {
@@ -41,14 +76,12 @@ pub async fn run_bitfinex_connector(tx: Sender<PriceUpdate>) {
                         continue;
                     }
 
-                    // Should be an array
                     if let Some(arr) = parsed.as_array() {
                         // Ignore heartbeat ["hb"]
                         if arr.len() == 2 && arr[1] == "hb" {
                             continue;
                         }
 
-                        // The second element contains ticker data
                         if arr.len() >= 2 {
                             if let Some(data) = arr[1].as_array() {
                                 // LAST_PRICE is at index 6
@@ -56,7 +89,7 @@ pub async fn run_bitfinex_connector(tx: Sender<PriceUpdate>) {
                                     if let Some(price) = data[6].as_f64() {
                                         let _ = tx.send(PriceUpdate {
                                             source: "Bitfinex".to_string(),
-                                            pair: "SOL/USD".to_string(),
+                                            pair: canonical_pair.clone(),
                                             price,
                                         });
                                     }
@@ -71,12 +104,13 @@ pub async fn run_bitfinex_connector(tx: Sender<PriceUpdate>) {
             }
             Ok(Message::Close(_)) => break,
             Err(e) => {
-                eprintln!("[Bitfinex] ❌ WS error: {:?}", e);
+                eprintln!("[Bitfinex] ❌ WS error for {}: {:?}", canonical_pair, e);
                 break;
             }
             _ => {}
         }
     }
 
-    eprintln!("[Bitfinex] ⚠️ Connector stopped. Reconnecting...");
+    eprintln!("[Bitfinex] ⚠️ Connector for {} stopped.", canonical_pair);
 }
+

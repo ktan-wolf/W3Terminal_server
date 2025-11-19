@@ -1,6 +1,6 @@
 use super::state::PriceUpdate;
 use futures_util::{SinkExt, StreamExt};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize}; // Added Serialize for the subscription message
 use tokio::sync::broadcast::Sender;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
@@ -20,28 +20,49 @@ struct OkxMsg {
     data: Option<Vec<OkxTrade>>,
 }
 
-pub async fn run_okx_connector(tx: Sender<PriceUpdate>) {
+// UPDATED SIGNATURE: Accept the `pair` string
+pub async fn run_okx_connector(tx: Sender<PriceUpdate>, pair: String) {
     let url = "wss://ws.okx.com:8443/ws/v5/public";
-    println!("[OKX] connecting : {url}");
+
+    // Store the original requested pair for output
+    let canonical_pair = pair.clone();
+
+    // 1. Derive OKX Instrument ID (e.g., "BTC/USDC" -> "BTC-USDC")
+    // OKX uses BASE-QUOTE format
+    let inst_id = pair.replace("/", "-");
+
+    println!(
+        "[OKX] connecting to pair: {} (InstID: {})",
+        canonical_pair, inst_id
+    );
 
     match connect_async(url).await {
         Ok((mut ws_stream, _)) => {
             println!("[OKX] ✅ Connected");
 
+            // 2. USE THE PAIR: Subscribe using the dynamic InstID
             let subscribe_msg = serde_json::json!({
-                "op": "subscribe",
-                "args": [{
-                    "channel": "trades",
-                    "instId": "SOL-USDT"
-                }]
+            "op": "subscribe",
+            "args": [{
+            "channel": "trades",
+            "instId": inst_id
+            }]
             });
 
-            ws_stream
+            // Send subscription message
+            if ws_stream
                 .send(Message::Text(subscribe_msg.to_string().into()))
                 .await
-                .unwrap();
+                .is_err()
+            {
+                eprintln!(
+                    "[OKX] ❌ Failed to send subscribe message for {}",
+                    canonical_pair
+                );
+                return;
+            }
 
-            println!("[OKX] 📡 Subscribed to SOL-USDT trades");
+            println!("[OKX] 📡 Subscribed to {} trades", canonical_pair);
 
             while let Some(msg) = ws_stream.next().await {
                 if let Ok(msg) = msg {
@@ -55,7 +76,8 @@ pub async fn run_okx_connector(tx: Sender<PriceUpdate>) {
                                 if let Ok(price) = t.px.parse::<f64>() {
                                     let _ = tx.send(PriceUpdate {
                                         source: "OKX".to_string(),
-                                        pair: "SOL/USDT".to_string(),
+                                        // 3. Use the original requested pair for output
+                                        pair: canonical_pair.clone(),
                                         price,
                                     });
                                 }
@@ -65,6 +87,7 @@ pub async fn run_okx_connector(tx: Sender<PriceUpdate>) {
                 }
             }
         }
-        Err(e) => eprintln!("[OKX] ❌ Connection error: {:?}", e),
+        Err(e) => eprintln!("[OKX] ❌ Connection error for {}: {:?}", canonical_pair, e),
     }
 }
+

@@ -27,12 +27,15 @@ struct HtxTrade {
     price: f64,
 }
 
-pub async fn run_htx_connector(tx: Sender<PriceUpdate>) {
-    let symbol = "solusdt";
+/// Run the HTX WebSocket connector for a given pair
+pub async fn run_htx_connector(tx: Sender<PriceUpdate>, pair: String) {
+    // HTX expects lowercase without "/": "SOL/USDT" -> "solusdt"
+    let symbol = pair.replace("/", "").to_lowercase();
+    let canonical_pair = pair.clone();
     let channel = format!("market.{}.trade.detail", symbol);
 
     loop {
-        println!("HTX: connecting...");
+        println!("HTX: connecting to {}", canonical_pair);
 
         let ws_url = "wss://api-aws.huobi.pro/ws";
         let (ws_stream, _) = match connect_async(ws_url).await {
@@ -44,7 +47,7 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>) {
             }
         };
 
-        println!("HTX: connected");
+        println!("HTX: connected for {}", canonical_pair);
 
         let (write, mut read) = ws_stream.split();
         let write = Arc::new(Mutex::new(write));
@@ -52,20 +55,19 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>) {
         // Subscribe
         let sub = serde_json::json!({
             "sub": channel,
-            "id": "htx_sub_1"
+            "id": format!("htx_sub_{}", symbol)
         });
-        if write
-            .lock()
-            .await
-            .send(Message::Text(sub.to_string().into()))
-            .await
-            .is_err()
+
         {
-            eprintln!("❌ HTX subscribe failed");
-            sleep(Duration::from_secs(5)).await;
-            continue;
+            let mut w = write.lock().await;
+            if let Err(e) = w.send(Message::Text(sub.to_string().into())).await {
+                eprintln!("❌ HTX subscribe failed for {}: {:?}", canonical_pair, e);
+                sleep(Duration::from_secs(5)).await;
+                continue;
+            }
         }
-        println!("HTX: subscribed.");
+
+        println!("HTX: subscribed to {}", canonical_pair);
 
         // Ping task
         let ping_write = Arc::clone(&write);
@@ -79,7 +81,7 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>) {
             }
         });
 
-        // Read messages
+        // Read loop
         while let Some(msg) = read.next().await {
             match msg {
                 Ok(Message::Binary(bin)) => {
@@ -94,7 +96,7 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>) {
                             for trade in tick.data {
                                 let _ = tx.send(PriceUpdate {
                                     source: "HTX".to_string(),
-                                    pair: "SOL/USDT".to_string(),
+                                    pair: canonical_pair.clone(),
                                     price: trade.price,
                                 });
                             }
@@ -108,12 +110,12 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>) {
                 }
 
                 Ok(Message::Close(_)) => {
-                    eprintln!("HTX: connection closed by server");
+                    eprintln!("HTX: connection closed by server for {}", canonical_pair);
                     break;
                 }
 
                 Err(e) => {
-                    eprintln!("❌ HTX WS error: {:?}", e);
+                    eprintln!("❌ HTX WS error for {}: {:?}", canonical_pair, e);
                     break;
                 }
 
@@ -121,7 +123,10 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>) {
             }
         }
 
-        eprintln!("HTX: disconnected. Reconnecting in 5s...");
+        eprintln!(
+            "HTX: disconnected for {}. Reconnecting in 5s...",
+            canonical_pair
+        );
         sleep(Duration::from_millis(500)).await;
     }
 }
