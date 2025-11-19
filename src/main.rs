@@ -104,10 +104,10 @@ async fn handle_socket_subscribe(mut socket: WebSocket, db_pool: PgPool) {
 
     // --- 2. Create channels for Price Updates and Arbitrage Feeds ---
     // This is the channel the connectors send raw prices into (for the requested pair)
-    let (tx_price_raw, mut rx_price_raw) = broadcast::channel::<PriceUpdate>(10);
+    let (tx_price_raw, mut rx_price_raw) = broadcast::channel::<PriceUpdate>(1000);
 
     // This is the channel the ArbitrageEngine sends the final computed feed into
-    let (tx_arb_feed, mut rx_arb_feed) = broadcast::channel::<ArbitrageFeed>(10);
+    let (tx_arb_feed, mut rx_arb_feed) = broadcast::channel::<ArbitrageFeed>(1000);
 
     let mut connector_handles: Vec<JoinHandle<()>> = Vec::new();
 
@@ -118,51 +118,51 @@ async fn handle_socket_subscribe(mut socket: WebSocket, db_pool: PgPool) {
         tx_price_raw.clone(),
         pair.clone(),
     )));
-    connector_handles.push(tokio::spawn(run_coinbase_connector(
-        tx_price_raw.clone(),
-        pair.clone(),
-    )));
-    // REPLICATE THIS FOR ALL CONNECTORS
-    connector_handles.push(tokio::spawn(run_dex_connector(
-        tx_price_raw.clone(),
-        pair.clone(),
-    )));
-    connector_handles.push(tokio::spawn(run_raydium_connector(
-        tx_price_raw.clone(),
-        pair.clone(),
-    )));
-    connector_handles.push(tokio::spawn(run_kraken_connector(
-        tx_price_raw.clone(),
-        pair.clone(),
-    )));
-    connector_handles.push(tokio::spawn(run_okx_connector(
-        tx_price_raw.clone(),
-        pair.clone(),
-    )));
-    connector_handles.push(tokio::spawn(run_bitfinex_connector(
-        tx_price_raw.clone(),
-        pair.clone(),
-    )));
-    connector_handles.push(tokio::spawn(run_bybit_connector(
-        tx_price_raw.clone(),
-        pair.clone(),
-    )));
-    connector_handles.push(tokio::spawn(run_kucoin_connector(
-        tx_price_raw.clone(),
-        pair.clone(),
-    )));
-    connector_handles.push(tokio::spawn(run_bitget_connector(
-        tx_price_raw.clone(),
-        pair.clone(),
-    )));
-    connector_handles.push(tokio::spawn(run_htx_connector(
-        tx_price_raw.clone(),
-        pair.clone(),
-    )));
-    connector_handles.push(tokio::spawn(run_orca_connector(
-        tx_price_raw.clone(),
-        pair.clone(),
-    )));
+    // connector_handles.push(tokio::spawn(run_coinbase_connector(
+    //     tx_price_raw.clone(),
+    //     pair.clone(),
+    // )));
+    // // REPLICATE THIS FOR ALL CONNECTORS
+    // connector_handles.push(tokio::spawn(run_dex_connector(
+    //     tx_price_raw.clone(),
+    //     pair.clone(),
+    // )));
+    // connector_handles.push(tokio::spawn(run_raydium_connector(
+    //     tx_price_raw.clone(),
+    //     pair.clone(),
+    // )));
+    // connector_handles.push(tokio::spawn(run_kraken_connector(
+    //     tx_price_raw.clone(),
+    //     pair.clone(),
+    // )));
+    // connector_handles.push(tokio::spawn(run_okx_connector(
+    //     tx_price_raw.clone(),
+    //     pair.clone(),
+    // )));
+    // connector_handles.push(tokio::spawn(run_bitfinex_connector(
+    //     tx_price_raw.clone(),
+    //     pair.clone(),
+    // )));
+    // connector_handles.push(tokio::spawn(run_bybit_connector(
+    //     tx_price_raw.clone(),
+    //     pair.clone(),
+    // )));
+    // connector_handles.push(tokio::spawn(run_kucoin_connector(
+    //     tx_price_raw.clone(),
+    //     pair.clone(),
+    // )));
+    // connector_handles.push(tokio::spawn(run_bitget_connector(
+    //     tx_price_raw.clone(),
+    //     pair.clone(),
+    // )));
+    // connector_handles.push(tokio::spawn(run_htx_connector(
+    //     tx_price_raw.clone(),
+    //     pair.clone(),
+    // )));
+    // connector_handles.push(tokio::spawn(run_orca_connector(
+    //     tx_price_raw.clone(),
+    //     pair.clone(),
+    // )));
     connector_handles.push(tokio::spawn(run_backpack_connector(
         tx_price_raw.clone(),
         pair.clone(),

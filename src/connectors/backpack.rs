@@ -22,53 +22,75 @@ struct TradeMessage {
 }
 
 pub async fn run_backpack_connector(tx: Sender<PriceUpdate>, pair: String) {
-    if let Err(e) = async {
-        // Original connector body goes here
-        let backpack_symbol = pair.replace("/", "_").to_uppercase();
-        let canonical_pair = pair.clone();
+    const BACKPACK_WS_URL: &str = "wss://ws.backpack.exchange";
+    let symbol = pair.replace("/", "_").to_uppercase();
 
-        let ws_url = "wss://ws.backpack.exchange";
-        println!("[Backpack] Connecting to WebSocket at {}", ws_url);
+    println!("[Backpack] Connecting: {}", BACKPACK_WS_URL);
 
-        let (ws_stream, _) = connect_async(ws_url).await?;
-        let (mut write, mut read) = ws_stream.split();
+    let (ws_stream, _) = match connect_async(BACKPACK_WS_URL).await {
+        Ok(ok) => ok,
+        Err(e) => {
+            eprintln!("[Backpack] ❌ Connection error: {:?}", e);
+            return;
+        }
+    };
 
-        let subscribe_msg = serde_json::json!({
-            "method": "SUBSCRIBE",
-            "params": [ format!("trade.{}", backpack_symbol) ]
-        });
+    let (mut write, mut read) = ws_stream.split();
 
-        write
-            .send(tokio_tungstenite::tungstenite::Message::Text(
-                subscribe_msg.to_string().into(),
-            ))
-            .await?;
+    // Subscribe to trade stream
+    let subscribe_msg = json!({
+        "method": "SUBSCRIBE",
+        "params": [ format!("trade.{}", symbol) ]
+    });
 
-        println!("[Backpack] Subscribed to trade.{}", backpack_symbol);
+    if let Err(e) = write
+        .send(tokio_tungstenite::tungstenite::Message::Text(
+            subscribe_msg.to_string().into(),
+        ))
+        .await
+    {
+        eprintln!("[Backpack] ❌ Failed to subscribe: {:?}", e);
+        return;
+    }
 
-        while let Some(msg) = read.next().await {
-            let msg = msg?;
-            if let tokio_tungstenite::tungstenite::Message::Text(txt) = msg {
-                let v: serde_json::Value = serde_json::from_str(&txt)?;
-                if let Some(data) = v.get("data") {
-                    if let Ok(trade) = serde_json::from_value::<TradeMessage>(data.clone()) {
-                        if let Ok(price) = trade.price.parse::<f64>() {
-                            let _ = tx.send(PriceUpdate {
-                                source: "Backpack".into(),
-                                pair: canonical_pair.clone(),
-                                price,
-                            });
-                        }
-                    }
-                }
+    println!("[Backpack] Subscribed to trade.{}", symbol);
+
+    while let Some(msg) = read.next().await {
+        let msg = match msg {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("[Backpack] ❌ Error reading message: {:?}", e);
+                break;
+            }
+        };
+
+        if let tokio_tungstenite::tungstenite::Message::Text(txt) = msg {
+            let v: serde_json::Value = match serde_json::from_str(&txt) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+
+            if v.get("stream").is_some() {
+                let data = &v["data"];
+
+                let trade: TradeMessage = match serde_json::from_value(data.clone()) {
+                    Ok(t) => t,
+                    Err(_) => continue,
+                };
+
+                let price: f64 = trade.price.parse().unwrap_or(0.0);
+
+                let update = PriceUpdate {
+                    source: "Backpack".into(),
+                    pair: pair.clone(),
+                    price,
+                };
+
+                let _ = tx.send(update);
             }
         }
+    }
 
-        Ok::<(), anyhow::Error>(())
-    }
-    .await
-    {
-        eprintln!("❌ Backpack connector error: {:?}", e);
-    }
+    println!("[Backpack] ❌ Disconnected");
 }
 
