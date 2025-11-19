@@ -162,6 +162,6 @@ pub async fn run_kucoin_connector(tx: Sender<PriceUpdate>, pair: String) {
             "⚠️ KuCoin connector for {} disconnected. Reconnecting...",
             canonical_pair
         );
-        sleep(Duration::from_secs(5)).await;
+        sleep(Duration::from_millis(500)).await;
     }
 }

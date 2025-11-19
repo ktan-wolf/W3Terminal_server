@@ -59,26 +59,21 @@ pub async fn run_kraken_connector(tx: Sender<PriceUpdate>, pair: String) {
         Ok((mut ws_stream, _)) => {
             println!("[Kraken] ✅ Connected");
 
-            // 3. USE MAPPED SYMBOL in the subscription message
+            // Subscribe to SOL/USD trades
             let subscribe_msg = serde_json::json!({
                 "event": "subscribe",
-                // Pass the single pair in an array, using the mapped symbol
                 "pair": [kraken_subscription_symbol.clone()],
                 "subscription": { "name": "trade" }
             });
 
-            if ws_stream
+            ws_stream
                 .send(Message::Text(subscribe_msg.to_string().into()))
                 .await
-                .is_err()
-            {
-                eprintln!("[Kraken] ❌ Failed to subscribe to {}", pair);
-                return;
-            }
+                .unwrap();
 
             println!(
-                "[Kraken] 📡 Subscribed to {} trades (using symbol: {})",
-                pair, kraken_subscription_symbol
+                "[Kraken] 📡 Subscribed to {} trades",
+                kraken_subscription_symbol
             );
 
             while let Some(msg) = ws_stream.next().await {
@@ -86,29 +81,25 @@ pub async fn run_kraken_connector(tx: Sender<PriceUpdate>, pair: String) {
                     if msg.is_text() {
                         let text = msg.to_text().unwrap();
 
-                        // Skip non-trade events and subscription confirmations
-                        if text.contains("heartbeat")
-                            || text.contains("\"event\"")
-                            || text.contains("status")
-                        {
+                        // Skip non-trade events
+                        if text.contains("heartbeat") || text.contains("\"event\"") {
                             continue;
                         }
 
-                        // Kraken sends trade arrays in the format: [ChannelID, [[Price, Volume, ...]], ChannelName, Pair]
+                        // Kraken sends trade arrays
                         if let Ok(json_val) = serde_json::from_str::<serde_json::Value>(text) {
                             if let Some(arr) = json_val.as_array() {
-                                // Check for the typical Kraken trade array structure: [ChannelID, [Trades...], ChannelName, Pair]
                                 if arr.len() >= 4 && arr[1].is_array() {
                                     if let Ok(trades) =
                                         serde_json::from_value::<Vec<KrakenTradeEntry>>(
-                                            arr[1].clone(), // Get the inner array of trade entries
+                                            arr[1].clone(),
                                         )
                                     {
                                         for trade in trades {
                                             if let Ok(price) = trade.0.parse::<f64>() {
                                                 let _ = tx.send(PriceUpdate {
                                                     source: "Kraken".to_string(),
-                                                    pair: pair.clone(), // Use the canonical pair for output
+                                                    pair: pair.clone(),
                                                     price,
                                                 });
                                             }
@@ -121,7 +112,6 @@ pub async fn run_kraken_connector(tx: Sender<PriceUpdate>, pair: String) {
                 }
             }
         }
-        Err(e) => eprintln!("[Kraken] ❌ Connection error for {}: {:?}", pair, e),
+        Err(e) => eprintln!("[Kraken] ❌ Connection error: {:?}", e),
     }
 }
-

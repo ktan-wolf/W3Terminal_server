@@ -113,4 +113,3 @@ pub async fn run_bitfinex_connector(tx: Sender<PriceUpdate>, pair: String) {
 
     eprintln!("[Bitfinex] ⚠️ Connector for {} stopped.", canonical_pair);
 }
-

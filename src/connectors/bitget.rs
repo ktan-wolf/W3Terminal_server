@@ -23,35 +23,32 @@ struct BitgetArg {
 
 #[derive(Debug, Deserialize)]
 struct BitgetTicker {
-    lastPr: String,
+    lastPr: String, // IMPORTANT: Bitget uses lastPr
 }
 
-/// Run the Bitget WebSocket connector for a given pair
 pub async fn run_bitget_connector(tx: Sender<PriceUpdate>, pair: String) {
-    // Bitget uses "SOLUSDT" format, so remove "/" and uppercase
     let symbol = pair.replace("/", "").to_uppercase();
-    let canonical_pair = pair.clone(); // e.g., "SOL/USDT"
 
     loop {
         println!("🔌 Connecting to Bitget for {}", symbol);
         let ws_url = "wss://ws.bitget.com/v2/ws/public";
 
-        // 1️⃣ Connect to WebSocket
         let (ws_stream, _) = match connect_async(ws_url).await {
-            Ok(stream) => stream,
+            Ok(s) => s,
             Err(e) => {
-                eprintln!("❌ Bitget WS connection failed: {:?}", e);
-                sleep(Duration::from_secs(5)).await;
+                eprintln!("❌ Bitget WS connect failed: {:?}", e);
+                sleep(Duration::from_millis(500)).await;
                 continue;
             }
         };
+
         println!("⚡ Bitget WS connected");
 
         let (write, mut read) = ws_stream.split();
         let write = Arc::new(Mutex::new(write));
 
-        // 2️⃣ Subscribe to ticker
-        let sub_msg = serde_json::json!({
+        // Subscribe to ticker
+        let sub = serde_json::json!({
             "op": "subscribe",
             "args": [{
                 "instType": "SPOT",
@@ -62,25 +59,24 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>, pair: String) {
 
         {
             let mut w = write.lock().await;
-            if let Err(e) = w.send(Message::Text(sub_msg.to_string().into())).await {
-                eprintln!("❌ Failed to send subscription: {:?}", e);
-            }
+            let _ = w.send(Message::Text(sub.to_string().into())).await;
         }
-        println!("📡 Subscribed to Bitget ticker {}", canonical_pair);
 
-        // 3️⃣ Ping task (keep connection alive)
+        println!("📡 Subscribed to Bitget ticker {}", symbol);
+
+        // Spawn ping task (every 15s)
         let ping_write = Arc::clone(&write);
         tokio::spawn(async move {
             loop {
-                sleep(Duration::from_secs(15)).await;
+                sleep(Duration::from_secs(1)).await;
                 let mut w = ping_write.lock().await;
                 if w.send(Message::Ping(Bytes::new())).await.is_err() {
-                    break; // WS closed
+                    break; // connection closed
                 }
             }
         });
 
-        // 4️⃣ Read loop
+        // Read loop
         while let Some(msg) = read.next().await {
             match msg {
                 Ok(Message::Text(text)) => {
@@ -90,7 +86,7 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>, pair: String) {
                                 if let Ok(price) = tick.lastPr.parse::<f64>() {
                                     let _ = tx.send(PriceUpdate {
                                         source: "Bitget".to_string(),
-                                        pair: canonical_pair.clone(),
+                                        pair: pair.clone(),
                                         price,
                                     });
                                 }
@@ -105,7 +101,6 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>, pair: String) {
                 }
 
                 Ok(Message::Close(_)) => break,
-
                 Err(e) => {
                     eprintln!("❌ Bitget WS error: {:?}", e);
                     break;
@@ -115,11 +110,7 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>, pair: String) {
             }
         }
 
-        eprintln!(
-            "⚠️ Bitget connector for {} disconnected. Reconnecting in 5s...",
-            canonical_pair
-        );
-        sleep(Duration::from_secs(5)).await;
+        eprintln!("⚠️ Bitget connector disconnected. Reconnecting in 5s...");
+        sleep(Duration::from_millis(500)).await;
     }
 }
-

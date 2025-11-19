@@ -35,7 +35,7 @@ fn get_mint_from_pair(pair: &str) -> Option<&'static str> {
 }
 
 // UPDATED SIGNATURE: Accept the `pair` string
-pub async fn run_dex_connector(tx: Sender<PriceUpdate>, pair: String) {
+pub async fn run_jupiter_connector(tx: Sender<PriceUpdate>, pair: String) {
     let canonical_pair = pair.clone(); // Store original pair for output
 
     // 1. Map the pair to the required mint address
@@ -51,7 +51,7 @@ pub async fn run_dex_connector(tx: Sender<PriceUpdate>, pair: String) {
     };
 
     println!(
-        "[DEX] Starting Jupiter (API V3) feed for {}. Mint: {}",
+        "[JUPITER] Starting Jupiter (API V3) feed for {}. Mint: {}",
         canonical_pair, mint_address
     );
 
@@ -101,7 +101,6 @@ pub async fn run_dex_connector(tx: Sender<PriceUpdate>, pair: String) {
         }
 
         // Delay is 1 second, Jupiter API rate limit is usually fine with this.
-        sleep(Duration::from_secs(1)).await;
+        sleep(Duration::from_millis(500)).await;
     }
 }
-

@@ -18,7 +18,7 @@ use connectors::{
     coinbase::run_coinbase_connector,
     db::{HistoricalPrice, fetch_historical, init_db, insert_price},
     htx::run_htx_connector,
-    jupiter::run_dex_connector,
+    jupiter::run_jupiter_connector,
     kraken::run_kraken_connector,
     kucoin::run_kucoin_connector,
     okx::run_okx_connector,
@@ -118,51 +118,51 @@ async fn handle_socket_subscribe(mut socket: WebSocket, db_pool: PgPool) {
         tx_price_raw.clone(),
         pair.clone(),
     )));
-    // connector_handles.push(tokio::spawn(run_coinbase_connector(
-    //     tx_price_raw.clone(),
-    //     pair.clone(),
-    // )));
+    connector_handles.push(tokio::spawn(run_coinbase_connector(
+        tx_price_raw.clone(),
+        pair.clone(),
+    )));
     // // REPLICATE THIS FOR ALL CONNECTORS
-    // connector_handles.push(tokio::spawn(run_dex_connector(
-    //     tx_price_raw.clone(),
-    //     pair.clone(),
-    // )));
-    // connector_handles.push(tokio::spawn(run_raydium_connector(
-    //     tx_price_raw.clone(),
-    //     pair.clone(),
-    // )));
-    // connector_handles.push(tokio::spawn(run_kraken_connector(
-    //     tx_price_raw.clone(),
-    //     pair.clone(),
-    // )));
-    // connector_handles.push(tokio::spawn(run_okx_connector(
-    //     tx_price_raw.clone(),
-    //     pair.clone(),
-    // )));
-    // connector_handles.push(tokio::spawn(run_bitfinex_connector(
-    //     tx_price_raw.clone(),
-    //     pair.clone(),
-    // )));
-    // connector_handles.push(tokio::spawn(run_bybit_connector(
-    //     tx_price_raw.clone(),
-    //     pair.clone(),
-    // )));
-    // connector_handles.push(tokio::spawn(run_kucoin_connector(
-    //     tx_price_raw.clone(),
-    //     pair.clone(),
-    // )));
-    // connector_handles.push(tokio::spawn(run_bitget_connector(
-    //     tx_price_raw.clone(),
-    //     pair.clone(),
-    // )));
-    // connector_handles.push(tokio::spawn(run_htx_connector(
-    //     tx_price_raw.clone(),
-    //     pair.clone(),
-    // )));
-    // connector_handles.push(tokio::spawn(run_orca_connector(
-    //     tx_price_raw.clone(),
-    //     pair.clone(),
-    // )));
+    connector_handles.push(tokio::spawn(run_jupiter_connector(
+        tx_price_raw.clone(),
+        pair.clone(),
+    )));
+    connector_handles.push(tokio::spawn(run_raydium_connector(
+        tx_price_raw.clone(),
+        pair.clone(),
+    )));
+    connector_handles.push(tokio::spawn(run_kraken_connector(
+        tx_price_raw.clone(),
+        pair.clone(),
+    )));
+    connector_handles.push(tokio::spawn(run_okx_connector(
+        tx_price_raw.clone(),
+        pair.clone(),
+    )));
+    connector_handles.push(tokio::spawn(run_bitfinex_connector(
+        tx_price_raw.clone(),
+        pair.clone(),
+    )));
+    connector_handles.push(tokio::spawn(run_bybit_connector(
+        tx_price_raw.clone(),
+        pair.clone(),
+    )));
+    connector_handles.push(tokio::spawn(run_kucoin_connector(
+        tx_price_raw.clone(),
+        pair.clone(),
+    )));
+    connector_handles.push(tokio::spawn(run_bitget_connector(
+        tx_price_raw.clone(),
+        pair.clone(),
+    )));
+    connector_handles.push(tokio::spawn(run_htx_connector(
+        tx_price_raw.clone(),
+        pair.clone(),
+    )));
+    connector_handles.push(tokio::spawn(run_orca_connector(
+        tx_price_raw.clone(),
+        pair.clone(),
+    )));
     connector_handles.push(tokio::spawn(run_backpack_connector(
         tx_price_raw.clone(),
         pair.clone(),

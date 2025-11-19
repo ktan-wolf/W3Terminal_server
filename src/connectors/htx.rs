@@ -42,7 +42,7 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>, pair: String) {
             Ok(s) => s,
             Err(e) => {
                 eprintln!("❌ HTX WS connect failed: {:?}", e);
-                sleep(Duration::from_secs(5)).await;
+                sleep(Duration::from_millis(500)).await;
                 continue;
             }
         };
@@ -62,7 +62,7 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>, pair: String) {
             let mut w = write.lock().await;
             if let Err(e) = w.send(Message::Text(sub.to_string().into())).await {
                 eprintln!("❌ HTX subscribe failed for {}: {:?}", canonical_pair, e);
-                sleep(Duration::from_secs(5)).await;
+                sleep(Duration::from_millis(500)).await;
                 continue;
             }
         }
@@ -73,7 +73,7 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>, pair: String) {
         let ping_write = Arc::clone(&write);
         tokio::spawn(async move {
             loop {
-                sleep(Duration::from_secs(5)).await;
+                sleep(Duration::from_millis(500)).await;
                 let mut w = ping_write.lock().await;
                 if w.send(Message::Ping(Bytes::new())).await.is_err() {
                     break;
