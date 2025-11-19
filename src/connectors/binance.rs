@@ -34,6 +34,7 @@ pub async fn run_binance_connector(tx: Sender<PriceUpdate>, pair: String) {
                                     source: "Binance".to_string(),
                                     pair: pair.clone(),
                                     price,
+                                    timestamp: parsed.timestamp,
                                 });
                             }
                         }

@@ -5,6 +5,7 @@ use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
 use std::io::Read;
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH}; // Added for fallback timestamp
 use tokio::sync::{Mutex, broadcast::Sender};
 use tokio::time::{Duration, sleep};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
@@ -15,6 +16,7 @@ struct HtxEnvelope {
     ch: String,
     #[serde(default)]
     tick: Option<HtxTick>,
+    ts: Option<u64>, // Added: HTX sends timestamp at root
 }
 
 #[derive(Debug, Deserialize)]
@@ -93,11 +95,20 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>, pair: String) {
 
                     if let Ok(parsed) = serde_json::from_str::<HtxEnvelope>(&decoded) {
                         if let Some(tick) = parsed.tick {
+                            // Use HTX timestamp or fallback to system time
+                            let timestamp = parsed.ts.unwrap_or_else(|| {
+                                SystemTime::now()
+                                    .duration_since(UNIX_EPOCH)
+                                    .unwrap()
+                                    .as_millis() as u64
+                            });
+
                             for trade in tick.data {
                                 let _ = tx.send(PriceUpdate {
                                     source: "HTX".to_string(),
                                     pair: canonical_pair.clone(),
                                     price: trade.price,
+                                    timestamp, // Added timestamp field
                                 });
                             }
                         }
@@ -130,3 +141,4 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>, pair: String) {
         sleep(Duration::from_millis(500)).await;
     }
 }
+

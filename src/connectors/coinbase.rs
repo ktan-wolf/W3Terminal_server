@@ -1,6 +1,7 @@
 use super::state::PriceUpdate;
 use futures_util::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize}; // Serialize is needed for the JSON subscription message
+use serde::{Deserialize, Serialize};
+use std::time::{SystemTime, UNIX_EPOCH}; // Added for timestamp generation
 use tokio::sync::broadcast::Sender;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
@@ -24,11 +25,9 @@ pub async fn run_coinbase_connector(tx: Sender<PriceUpdate>, pair: String) {
     let mut coinbase_product_id = pair.replace("/", "-");
 
     // 2. FALLBACK LOGIC: If requesting USDC, attempt to subscribe to the more common USD product.
-    // The price data is essentially the same, but the feed is active.
     if coinbase_product_id.ends_with("-USDC") {
         let base_currency = coinbase_product_id.trim_end_matches("-USDC");
         coinbase_product_id = format!("{}-USD", base_currency);
-        // Log the change for debugging
         println!(
             "Coinbase Falling back to product ID: {} (Requested: {})",
             coinbase_product_id, canonical_pair
@@ -47,7 +46,7 @@ pub async fn run_coinbase_connector(tx: Sender<PriceUpdate>, pair: String) {
             // Subscribe using the potentially modified product ID
             let subscribe_msg = serde_json::json!({
                 "type": "subscribe",
-                "product_ids": [coinbase_product_id], // Use the dynamically determined ID
+                "product_ids": [coinbase_product_id],
                 "channels": ["matches"]
             });
 
@@ -68,11 +67,18 @@ pub async fn run_coinbase_connector(tx: Sender<PriceUpdate>, pair: String) {
                             if parsed.msg_type == "match" {
                                 if let Some(price_str) = parsed.price {
                                     if let Ok(price) = price_str.parse::<f64>() {
+                                        // Generate timestamp
+                                        let timestamp = SystemTime::now()
+                                            .duration_since(UNIX_EPOCH)
+                                            .unwrap()
+                                            .as_millis()
+                                            as u64;
+
                                         let _ = tx.send(PriceUpdate {
                                             source: "Coinbase".to_string(),
-                                            // 3. Use the original requested pair for output
                                             pair: canonical_pair.clone(),
                                             price,
+                                            timestamp, // Added timestamp field
                                         });
                                     }
                                 }
@@ -87,3 +93,4 @@ pub async fn run_coinbase_connector(tx: Sender<PriceUpdate>, pair: String) {
         }
     }
 }
+

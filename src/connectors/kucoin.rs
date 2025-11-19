@@ -3,6 +3,7 @@ use bytes::Bytes;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH}; // Added for timestamp generation
 use tokio::sync::{Mutex, broadcast::Sender};
 use tokio::time::{Duration, sleep};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
@@ -72,6 +73,12 @@ pub async fn run_kucoin_connector(tx: Sender<PriceUpdate>, pair: String) {
             }
         };
 
+        if bullet.data.instanceServers.is_empty() {
+            eprintln!("KuCoin Error: No instance servers found");
+            sleep(Duration::from_secs(5)).await;
+            continue;
+        }
+
         let server = &bullet.data.instanceServers[0];
         let ws_url = format!("{}?token={}", server.endpoint, bullet.data.token);
 
@@ -135,10 +142,18 @@ pub async fn run_kucoin_connector(tx: Sender<PriceUpdate>, pair: String) {
                         if parsed.msg_type == "message" {
                             if let Some(tick) = parsed.data {
                                 if let Ok(price) = tick.price.parse::<f64>() {
+                                    // Generate System Timestamp
+                                    let timestamp = SystemTime::now()
+                                        .duration_since(UNIX_EPOCH)
+                                        .unwrap()
+                                        .as_millis()
+                                        as u64;
+
                                     let _ = read_tx.send(PriceUpdate {
                                         source: "KuCoin".to_string(),
                                         pair: canonical_pair.clone(),
                                         price,
+                                        timestamp, // Added timestamp field
                                     });
                                 }
                             }
@@ -165,3 +180,4 @@ pub async fn run_kucoin_connector(tx: Sender<PriceUpdate>, pair: String) {
         sleep(Duration::from_millis(500)).await;
     }
 }
+

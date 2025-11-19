@@ -1,6 +1,6 @@
 use super::state::PriceUpdate;
 use futures_util::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize}; // Added Serialize for subscribe_msg
+use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast::Sender;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
@@ -8,7 +8,7 @@ use tokio_tungstenite::{connect_async, tungstenite::Message};
 struct KrakenTradeEntry(
     String, // price
     String, // volume
-    String, // timestamp
+    String, // timestamp (seconds.decimals)
     String, // buy/sell
     String, // market/limit
     String, // misc
@@ -32,24 +32,19 @@ fn to_kraken_symbol(pair: &str) -> String {
     };
 
     // 2. Map Quote Currency: Fiat/Stablecoin conversion is messy on Kraken V1
-    // The safest approach is usually XBT/USD -> XBTZUSD. For cryptos/stablecoins,
-    // it's often simpler (SOL/USDC -> SOLUSDC), but we'll try the common ones.
     let kraken_quote = match quote {
-        // ZUSD for USD on older feeds, but simple USDT/USDC sometimes works for pairs like SOL/USDC
         "USD" => "USD".to_string(), // SOL/USD or BTC/USD are common
         "USDT" => "USDT".to_string(),
         "USDC" => "USDC".to_string(),
         _ => quote.to_string(),
     };
 
-    // Combine them, Kraken V1 API uses no separator (XBTUSDC) or sometimes a prefixed quote (XBTZUSD)
-    // We'll use the canonical "BASE/QUOTE" format in the subscription message's 'pair' field,
-    // as Kraken often accepts common formats if listed on the exchange.
+    // Combine them
     format!("{}/{}", kraken_base, kraken_quote)
 }
 
 pub async fn run_kraken_connector(tx: Sender<PriceUpdate>, pair: String) {
-    // Convert canonical pair (e.g., BTC/USDC) to the format Kraken expects (e.g., XBT/USDC)
+    // Convert canonical pair (e.g., BTC/USDC) to the format Kraken expects
     let kraken_subscription_symbol = to_kraken_symbol(&pair);
 
     let url = "wss://ws.kraken.com";
@@ -59,7 +54,7 @@ pub async fn run_kraken_connector(tx: Sender<PriceUpdate>, pair: String) {
         Ok((mut ws_stream, _)) => {
             println!("Kraken Connected");
 
-            // Subscribe to SOL/USD trades
+            // Subscribe to trades
             let subscribe_msg = serde_json::json!({
                 "event": "subscribe",
                 "pair": [kraken_subscription_symbol.clone()],
@@ -83,10 +78,11 @@ pub async fn run_kraken_connector(tx: Sender<PriceUpdate>, pair: String) {
                             continue;
                         }
 
-                        // Kraken sends trade arrays
+                        // Kraken sends trade arrays: [channelID, [[price, vol, time, ...], ...], channelName, pair]
                         if let Ok(json_val) = serde_json::from_str::<serde_json::Value>(text) {
                             if let Some(arr) = json_val.as_array() {
-                                if arr.len() >= 4 && arr[1].is_array() {
+                                // Ensure we have the data array at index 1
+                                if arr.len() >= 2 && arr[1].is_array() {
                                     if let Ok(trades) =
                                         serde_json::from_value::<Vec<KrakenTradeEntry>>(
                                             arr[1].clone(),
@@ -94,10 +90,16 @@ pub async fn run_kraken_connector(tx: Sender<PriceUpdate>, pair: String) {
                                     {
                                         for trade in trades {
                                             if let Ok(price) = trade.0.parse::<f64>() {
+                                                // Parse timestamp: Kraken sends seconds as string "1616661666.1234"
+                                                let ts_seconds =
+                                                    trade.2.parse::<f64>().unwrap_or(0.0);
+                                                let timestamp = (ts_seconds * 1000.0) as u64; // Convert to ms
+
                                                 let _ = tx.send(PriceUpdate {
                                                     source: "Kraken".to_string(),
                                                     pair: pair.clone(),
                                                     price,
+                                                    timestamp, // Added timestamp field
                                                 });
                                             }
                                         }
@@ -112,3 +114,4 @@ pub async fn run_kraken_connector(tx: Sender<PriceUpdate>, pair: String) {
         Err(e) => eprintln!("Kraken Connection error: {:?}", e),
     }
 }
+

@@ -1,12 +1,14 @@
 use super::state::PriceUpdate;
 use futures_util::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize}; // Added Serialize for the subscription message
+use serde::{Deserialize, Serialize};
+use std::time::{SystemTime, UNIX_EPOCH}; // Added for fallback timestamp
 use tokio::sync::broadcast::Sender;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 #[derive(Debug, Deserialize)]
 struct OkxTrade {
     px: String, // price
+    ts: String, // timestamp
 }
 
 #[derive(Debug, Deserialize)]
@@ -42,11 +44,11 @@ pub async fn run_okx_connector(tx: Sender<PriceUpdate>, pair: String) {
 
             // 2. USE THE PAIR: Subscribe using the dynamic InstID
             let subscribe_msg = serde_json::json!({
-            "op": "subscribe",
-            "args": [{
-            "channel": "trades",
-            "instId": inst_id
-            }]
+                "op": "subscribe",
+                "args": [{
+                    "channel": "trades",
+                    "instId": inst_id
+                }]
             });
 
             // Send subscription message
@@ -74,11 +76,21 @@ pub async fn run_okx_connector(tx: Sender<PriceUpdate>, pair: String) {
                         if let Some(data) = parsed.data {
                             for t in data {
                                 if let Ok(price) = t.px.parse::<f64>() {
+                                    // Parse OKX timestamp (string ms) or fallback to system time
+                                    let timestamp = t.ts.parse::<u64>().unwrap_or_else(|_| {
+                                        SystemTime::now()
+                                            .duration_since(UNIX_EPOCH)
+                                            .unwrap()
+                                            .as_millis()
+                                            as u64
+                                    });
+
                                     let _ = tx.send(PriceUpdate {
                                         source: "OKX".to_string(),
                                         // 3. Use the original requested pair for output
                                         pair: canonical_pair.clone(),
                                         price,
+                                        timestamp, // Added timestamp field
                                     });
                                 }
                             }
@@ -90,3 +102,4 @@ pub async fn run_okx_connector(tx: Sender<PriceUpdate>, pair: String) {
         Err(e) => eprintln!("OKX Connection error for {}: {:?}", canonical_pair, e),
     }
 }
+

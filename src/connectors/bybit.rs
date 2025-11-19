@@ -1,5 +1,6 @@
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::broadcast::Sender;
 use tokio_tungstenite::connect_async;
 
@@ -15,6 +16,7 @@ struct BybitTickerData {
 struct BybitMessage {
     topic: Option<String>,
     data: Option<BybitTickerData>,
+    ts: Option<u64>, // Added timestamp field (Bybit sends 'ts')
 }
 
 pub async fn run_bybit_connector(tx: Sender<PriceUpdate>, pair: String) {
@@ -35,7 +37,7 @@ pub async fn run_bybit_connector(tx: Sender<PriceUpdate>, pair: String) {
 
     let (mut write, mut read) = ws_stream.split();
 
-    // Subscribe to SOLUSDT ticker
+    // Subscribe to ticker
     let subscribe_msg = serde_json::json!({
         "op": "subscribe",
         "args": [format!("tickers.{}", symbol)] // Dynamically insert the symbol
@@ -55,10 +57,19 @@ pub async fn run_bybit_connector(tx: Sender<PriceUpdate>, pair: String) {
             if let Ok(parsed) = serde_json::from_str::<BybitMessage>(&text) {
                 if let (Some(_topic), Some(data)) = (parsed.topic, parsed.data) {
                     if let Ok(price) = data.last_price.parse::<f64>() {
+                        // Use Bybit timestamp or fallback to SystemTime
+                        let timestamp = parsed.ts.unwrap_or_else(|| {
+                            SystemTime::now()
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap()
+                                .as_millis() as u64
+                        });
+
                         let _ = tx.send(PriceUpdate {
                             source: "Bybit".to_string(),
                             pair: pair.clone(),
                             price,
+                            timestamp, // Added timestamp
                         });
                     }
                 }
@@ -68,3 +79,4 @@ pub async fn run_bybit_connector(tx: Sender<PriceUpdate>, pair: String) {
 
     println!("Bybit WebSocket closed.");
 }
+

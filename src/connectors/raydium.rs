@@ -5,6 +5,7 @@ use anyhow::{Result, anyhow};
 use solana_account_decoder::UiAccountEncoding; // Kept as it was in the original imports
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::pubkey::Pubkey;
+use std::time::{SystemTime, UNIX_EPOCH}; // Added for timestamp generation
 use tokio::sync::broadcast::Sender;
 use tokio::time::{Duration, sleep};
 
@@ -97,10 +98,17 @@ pub async fn run_raydium_connector(tx: Sender<PriceUpdate>, pair: String) {
         // Pass the dynamic configuration to the fetch function
         match fetch_raydium_price(&rpc, &config).await {
             Ok(price) => {
+                // Generate timestamp for RPC poll
+                let timestamp = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis() as u64;
+
                 let update = PriceUpdate {
                     source: "Raydium".into(),
                     pair: canonical_pair.clone(), // Use the original canonical pair
                     price,
+                    timestamp, // Added timestamp field
                 };
                 let _ = tx.send(update);
             }
@@ -112,3 +120,4 @@ pub async fn run_raydium_connector(tx: Sender<PriceUpdate>, pair: String) {
         sleep(Duration::from_millis(500)).await;
     }
 }
+

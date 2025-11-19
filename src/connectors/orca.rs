@@ -4,6 +4,7 @@ use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::pubkey::Pubkey;
 use std::convert::TryInto;
 use std::str::FromStr;
+use std::time::{SystemTime, UNIX_EPOCH}; // Added for timestamp generation
 use tokio::sync::broadcast::Sender;
 use tokio::time::{Duration, sleep};
 
@@ -75,10 +76,17 @@ pub async fn run_orca_connector(tx: Sender<PriceUpdate>, pair: String) {
                     let decimal_adjustment = 10f64.powi(config.base_decimals - USDC_DECIMALS);
                     let final_price = price_native * decimal_adjustment;
 
+                    // Generate System Timestamp for RPC polling
+                    let timestamp = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap()
+                        .as_millis() as u64;
+
                     let update = PriceUpdate {
                         source: "Orca".into(),
                         pair: canonical_pair.clone(),
                         price: final_price,
+                        timestamp, // Added timestamp field
                     };
 
                     let _ = tx.send(update);
@@ -101,3 +109,4 @@ pub async fn run_orca_connector(tx: Sender<PriceUpdate>, pair: String) {
         eprintln!("Orca connector error for {}: {:?}", pair, e);
     }
 }
+

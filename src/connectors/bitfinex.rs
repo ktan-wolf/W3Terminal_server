@@ -1,6 +1,7 @@
 use super::state::PriceUpdate;
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{Value, json};
+use std::time::{SystemTime, UNIX_EPOCH}; // Added for timestamp generation
 use tokio::sync::broadcast::Sender;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
@@ -84,10 +85,18 @@ pub async fn run_bitfinex_connector(tx: Sender<PriceUpdate>, pair: String) {
                                 // LAST_PRICE is at index 6
                                 if data.len() > 6 {
                                     if let Some(price) = data[6].as_f64() {
+                                        // Generate current timestamp (Bitfinex ticker doesn't provide one)
+                                        let timestamp = SystemTime::now()
+                                            .duration_since(UNIX_EPOCH)
+                                            .unwrap()
+                                            .as_millis()
+                                            as u64;
+
                                         let _ = tx.send(PriceUpdate {
                                             source: "Bitfinex".to_string(),
                                             pair: canonical_pair.clone(),
                                             price,
+                                            timestamp, // Added timestamp
                                         });
                                     }
                                 }
@@ -110,3 +119,4 @@ pub async fn run_bitfinex_connector(tx: Sender<PriceUpdate>, pair: String) {
 
     eprintln!("Bitfinex Connector for {} stopped.", canonical_pair);
 }
+

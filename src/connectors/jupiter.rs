@@ -2,6 +2,7 @@ use crate::connectors::state::PriceUpdate;
 use reqwest::Client;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH}; // Added for timestamp generation
 use tokio::sync::broadcast::Sender;
 use tokio::time::{Duration, sleep};
 
@@ -72,11 +73,18 @@ pub async fn run_jupiter_connector(tx: Sender<PriceUpdate>, pair: String) {
                 match json {
                     Ok(map) => {
                         if let Some(price_data) = map.get(expected_key) {
+                            // Generate timestamp since this is a polled HTTP endpoint
+                            let timestamp = SystemTime::now()
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap()
+                                .as_millis() as u64;
+
                             let update = PriceUpdate {
                                 source: "Jupiter".into(),
                                 // 3. Use the original canonical pair for output
                                 pair: canonical_pair.clone(),
                                 price: price_data.usdPrice,
+                                timestamp, // Added timestamp field
                             };
 
                             // broadcast the update
@@ -104,3 +112,4 @@ pub async fn run_jupiter_connector(tx: Sender<PriceUpdate>, pair: String) {
         sleep(Duration::from_millis(500)).await;
     }
 }
+

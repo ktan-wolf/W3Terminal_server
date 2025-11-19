@@ -28,9 +28,6 @@ pub use bybit::*;
 pub mod arbitrage_engine;
 pub use arbitrage_engine::*;
 
-pub mod db;
-pub use db::*;
-
 pub mod kucoin;
 pub use kucoin::*;
 

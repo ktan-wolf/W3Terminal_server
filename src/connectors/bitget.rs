@@ -3,6 +3,7 @@ use bytes::Bytes;
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH}; // Added for timestamp generation
 use tokio::sync::{Mutex, broadcast::Sender};
 use tokio::time::{Duration, sleep};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
@@ -64,13 +65,17 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>, pair: String) {
 
         println!("Subscribed to Bitget ticker {}", symbol);
 
-        // Spawn ping task (every 15s)
+        // Spawn ping task (every 15s - increased from 1s to avoid rate limits)
         let ping_write = Arc::clone(&write);
         tokio::spawn(async move {
             loop {
-                sleep(Duration::from_secs(1)).await;
+                sleep(Duration::from_secs(15)).await;
                 let mut w = ping_write.lock().await;
-                if w.send(Message::Ping(Bytes::new())).await.is_err() {
+                // Send standard Ping
+                if w.send(Message::Ping(Bytes::from_static(b"ping")))
+                    .await
+                    .is_err()
+                {
                     break; // connection closed
                 }
             }
@@ -84,10 +89,18 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>, pair: String) {
                         if let Some(ticks) = parsed.data {
                             for tick in ticks {
                                 if let Ok(price) = tick.lastPr.parse::<f64>() {
+                                    // Generate System Timestamp since Bitget ticker object didn't have one in struct
+                                    let timestamp = SystemTime::now()
+                                        .duration_since(UNIX_EPOCH)
+                                        .unwrap()
+                                        .as_millis()
+                                        as u64;
+
                                     let _ = tx.send(PriceUpdate {
                                         source: "Bitget".to_string(),
                                         pair: pair.clone(),
                                         price,
+                                        timestamp, // Added timestamp field
                                     });
                                 }
                             }
@@ -114,3 +127,4 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>, pair: String) {
         sleep(Duration::from_millis(500)).await;
     }
 }
+

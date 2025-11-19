@@ -84,6 +84,7 @@ pub async fn run_backpack_connector(tx: Sender<PriceUpdate>, pair: String) {
                     source: "Backpack".into(),
                     pair: pair.clone(),
                     price,
+                    timestamp: trade.ts,
                 };
 
                 let _ = tx.send(update);
