@@ -47,7 +47,7 @@ pub async fn run_kucoin_connector(tx: Sender<PriceUpdate>, pair: String) {
     let canonical_pair = pair.clone(); // keep original for broadcast
 
     loop {
-        println!("[KuCoin] Attempting connection for {}", canonical_pair);
+        println!("KuCoin Attempting connection for {}", canonical_pair);
 
         // 1️⃣ Fetch Bullet token & server endpoint
         let bullet_resp = match reqwest::Client::new()
@@ -57,7 +57,7 @@ pub async fn run_kucoin_connector(tx: Sender<PriceUpdate>, pair: String) {
         {
             Ok(resp) => resp,
             Err(e) => {
-                eprintln!("❌ KuCoin bullet request failed: {:?}", e);
+                eprintln!("KuCoin bullet request failed: {:?}", e);
                 sleep(Duration::from_secs(5)).await;
                 continue;
             }
@@ -66,7 +66,7 @@ pub async fn run_kucoin_connector(tx: Sender<PriceUpdate>, pair: String) {
         let bullet: BulletResponse = match bullet_resp.json().await {
             Ok(json) => json,
             Err(e) => {
-                eprintln!("❌ Failed to parse Bullet JSON: {:?}", e);
+                eprintln!("Failed to parse Bullet JSON: {:?}", e);
                 sleep(Duration::from_secs(5)).await;
                 continue;
             }
@@ -79,13 +79,13 @@ pub async fn run_kucoin_connector(tx: Sender<PriceUpdate>, pair: String) {
         let (ws_stream, _) = match connect_async(&ws_url).await {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("❌ KuCoin WS connection failed: {:?}", e);
+                eprintln!("KuCoin WS connection failed: {:?}", e);
                 sleep(Duration::from_secs(5)).await;
                 continue;
             }
         };
         println!(
-            "⚡ KuCoin WS connected for {} at {}",
+            "KuCoin WS connected for {} at {}",
             canonical_pair, server.endpoint
         );
 
@@ -107,11 +107,11 @@ pub async fn run_kucoin_connector(tx: Sender<PriceUpdate>, pair: String) {
                 .await
                 .is_err()
             {
-                eprintln!("❌ Failed to send subscription for {}", canonical_pair);
+                eprintln!("Failed to send subscription for {}", canonical_pair);
                 continue;
             }
         }
-        println!("📡 Subscribed to KuCoin ticker {}", canonical_pair);
+        println!("Subscribed to KuCoin ticker {}", canonical_pair);
 
         // 4️⃣ Ping task to keep WS alive
         let ping_write = Arc::clone(&write);
@@ -151,7 +151,7 @@ pub async fn run_kucoin_connector(tx: Sender<PriceUpdate>, pair: String) {
                 }
                 Ok(Message::Close(_)) => break,
                 Err(e) => {
-                    eprintln!("❌ KuCoin WS error: {:?}", e);
+                    eprintln!("KuCoin WS error: {:?}", e);
                     break;
                 }
                 _ => {}
@@ -159,7 +159,7 @@ pub async fn run_kucoin_connector(tx: Sender<PriceUpdate>, pair: String) {
         }
 
         eprintln!(
-            "⚠️ KuCoin connector for {} disconnected. Reconnecting...",
+            "KuCoin connector for {} disconnected. Reconnecting...",
             canonical_pair
         );
         sleep(Duration::from_millis(500)).await;

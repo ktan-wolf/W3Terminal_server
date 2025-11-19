@@ -25,12 +25,12 @@ pub async fn run_backpack_connector(tx: Sender<PriceUpdate>, pair: String) {
     const BACKPACK_WS_URL: &str = "wss://ws.backpack.exchange";
     let symbol = pair.replace("/", "_").to_uppercase();
 
-    println!("[Backpack] Connecting: {}", BACKPACK_WS_URL);
+    println!("Backpack Connecting: {}", BACKPACK_WS_URL);
 
     let (ws_stream, _) = match connect_async(BACKPACK_WS_URL).await {
         Ok(ok) => ok,
         Err(e) => {
-            eprintln!("[Backpack] ❌ Connection error: {:?}", e);
+            eprintln!("Backpack Connection error: {:?}", e);
             return;
         }
     };
@@ -49,17 +49,17 @@ pub async fn run_backpack_connector(tx: Sender<PriceUpdate>, pair: String) {
         ))
         .await
     {
-        eprintln!("[Backpack] ❌ Failed to subscribe: {:?}", e);
+        eprintln!("Backpack Failed to subscribe: {:?}", e);
         return;
     }
 
-    println!("[Backpack] Subscribed to trade.{}", symbol);
+    println!("Backpack Subscribed to trade.{}", symbol);
 
     while let Some(msg) = read.next().await {
         let msg = match msg {
             Ok(m) => m,
             Err(e) => {
-                eprintln!("[Backpack] ❌ Error reading message: {:?}", e);
+                eprintln!("[Backpack] Error reading message: {:?}", e);
                 break;
             }
         };
@@ -91,6 +91,5 @@ pub async fn run_backpack_connector(tx: Sender<PriceUpdate>, pair: String) {
         }
     }
 
-    println!("[Backpack] ❌ Disconnected");
+    println!("Backpack Disconnected");
 }
-

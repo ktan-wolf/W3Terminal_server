@@ -32,13 +32,13 @@ pub async fn run_okx_connector(tx: Sender<PriceUpdate>, pair: String) {
     let inst_id = pair.replace("/", "-");
 
     println!(
-        "[OKX] connecting to pair: {} (InstID: {})",
+        "OKX connecting to pair: {} (InstID: {})",
         canonical_pair, inst_id
     );
 
     match connect_async(url).await {
         Ok((mut ws_stream, _)) => {
-            println!("[OKX] ✅ Connected");
+            println!("OKX Connected");
 
             // 2. USE THE PAIR: Subscribe using the dynamic InstID
             let subscribe_msg = serde_json::json!({
@@ -56,13 +56,13 @@ pub async fn run_okx_connector(tx: Sender<PriceUpdate>, pair: String) {
                 .is_err()
             {
                 eprintln!(
-                    "[OKX] ❌ Failed to send subscribe message for {}",
+                    "OKX Failed to send subscribe message for {}",
                     canonical_pair
                 );
                 return;
             }
 
-            println!("[OKX] 📡 Subscribed to {} trades", canonical_pair);
+            println!("OKX Subscribed to {} trades", canonical_pair);
 
             while let Some(msg) = ws_stream.next().await {
                 if let Ok(msg) = msg {
@@ -87,7 +87,6 @@ pub async fn run_okx_connector(tx: Sender<PriceUpdate>, pair: String) {
                 }
             }
         }
-        Err(e) => eprintln!("[OKX] ❌ Connection error for {}: {:?}", canonical_pair, e),
+        Err(e) => eprintln!("OKX Connection error for {}: {:?}", canonical_pair, e),
     }
 }
-

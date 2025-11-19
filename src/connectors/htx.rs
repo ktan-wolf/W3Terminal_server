@@ -41,7 +41,7 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>, pair: String) {
         let (ws_stream, _) = match connect_async(ws_url).await {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("❌ HTX WS connect failed: {:?}", e);
+                eprintln!("HTX WS connect failed: {:?}", e);
                 sleep(Duration::from_millis(500)).await;
                 continue;
             }
@@ -61,13 +61,13 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>, pair: String) {
         {
             let mut w = write.lock().await;
             if let Err(e) = w.send(Message::Text(sub.to_string().into())).await {
-                eprintln!("❌ HTX subscribe failed for {}: {:?}", canonical_pair, e);
+                eprintln!("HTX subscribe failed for {}: {:?}", canonical_pair, e);
                 sleep(Duration::from_millis(500)).await;
                 continue;
             }
         }
 
-        println!("HTX: subscribed to {}", canonical_pair);
+        println!("HTX subscribed to {}", canonical_pair);
 
         // Ping task
         let ping_write = Arc::clone(&write);
@@ -110,12 +110,12 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>, pair: String) {
                 }
 
                 Ok(Message::Close(_)) => {
-                    eprintln!("HTX: connection closed by server for {}", canonical_pair);
+                    eprintln!("HTX connection closed by server for {}", canonical_pair);
                     break;
                 }
 
                 Err(e) => {
-                    eprintln!("❌ HTX WS error for {}: {:?}", canonical_pair, e);
+                    eprintln!("HTX WS error for {}: {:?}", canonical_pair, e);
                     break;
                 }
 
@@ -124,7 +124,7 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>, pair: String) {
         }
 
         eprintln!(
-            "HTX: disconnected for {}. Reconnecting in 5s...",
+            "HTX disconnected for {}. Reconnecting in 5s...",
             canonical_pair
         );
         sleep(Duration::from_millis(500)).await;

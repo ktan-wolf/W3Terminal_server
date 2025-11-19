@@ -33,22 +33,19 @@ pub async fn run_bitfinex_connector(tx: Sender<PriceUpdate>, pair: String) {
     let canonical_pair = pair.clone();
 
     println!(
-        "[Bitfinex] connecting to pair: {} (Symbol: {})",
+        "Bitfinex connecting to pair: {} (Symbol: {})",
         canonical_pair, bitfinex_symbol
     );
 
     let (mut ws, _) = match connect_async(url).await {
         Ok(res) => res,
         Err(e) => {
-            eprintln!(
-                "[Bitfinex] ❌ Connection error for {}: {:?}",
-                canonical_pair, e
-            );
+            eprintln!("Bitfinex Connection error for {}: {:?}", canonical_pair, e);
             return;
         }
     };
 
-    println!("[Bitfinex] ✅ Connected to {}", canonical_pair);
+    println!("Bitfinex Connected to {}", canonical_pair);
 
     // 2. Subscribe using the dynamic Bitfinex symbol
     let sub = json!({
@@ -59,13 +56,13 @@ pub async fn run_bitfinex_connector(tx: Sender<PriceUpdate>, pair: String) {
 
     if let Err(e) = ws.send(Message::Text(sub.to_string().into())).await {
         eprintln!(
-            "[Bitfinex] ❌ Subscription failed for {}: {:?}",
+            "Bitfinex Subscription failed for {}: {:?}",
             canonical_pair, e
         );
         return;
     }
 
-    println!("[Bitfinex] 📡 Subscribed to TICKER {}", canonical_pair);
+    println!("Bitfinex Subscribed to TICKER {}", canonical_pair);
 
     while let Some(msg) = ws.next().await {
         match msg {
@@ -104,12 +101,12 @@ pub async fn run_bitfinex_connector(tx: Sender<PriceUpdate>, pair: String) {
             }
             Ok(Message::Close(_)) => break,
             Err(e) => {
-                eprintln!("[Bitfinex] ❌ WS error for {}: {:?}", canonical_pair, e);
+                eprintln!("Bitfinex WS error for {}: {:?}", canonical_pair, e);
                 break;
             }
             _ => {}
         }
     }
 
-    eprintln!("[Bitfinex] ⚠️ Connector for {} stopped.", canonical_pair);
+    eprintln!("Bitfinex Connector for {} stopped.", canonical_pair);
 }

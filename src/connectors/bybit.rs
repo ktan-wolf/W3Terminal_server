@@ -21,17 +21,17 @@ pub async fn run_bybit_connector(tx: Sender<PriceUpdate>, pair: String) {
     let symbol = pair.to_uppercase().replace("/", "");
     let url = "wss://stream.bybit.com/v5/public/spot";
 
-    println!("🔗 Connecting to Bybit WebSocket…");
+    println!("Connecting to Bybit WebSocket…");
 
     let (ws_stream, _) = match connect_async(url).await {
         Ok(conn) => conn,
         Err(err) => {
-            eprintln!("❌ Bybit WS Connect Error: {:?}", err);
+            eprintln!("Bybit WS Connect Error: {:?}", err);
             return;
         }
     };
 
-    println!("✅ Connected to Bybit!");
+    println!("Connected to Bybit!");
 
     let (mut write, mut read) = ws_stream.split();
 
@@ -47,7 +47,7 @@ pub async fn run_bybit_connector(tx: Sender<PriceUpdate>, pair: String) {
         ))
         .await;
 
-    println!("📡 Subscribed to Bybit {} ticker.", symbol);
+    println!("Subscribed to Bybit {} ticker.", symbol);
 
     // Read incoming messages
     while let Some(msg) = read.next().await {
@@ -66,6 +66,5 @@ pub async fn run_bybit_connector(tx: Sender<PriceUpdate>, pair: String) {
         }
     }
 
-    println!("⚠️ Bybit WebSocket closed.");
+    println!("Bybit WebSocket closed.");
 }
-

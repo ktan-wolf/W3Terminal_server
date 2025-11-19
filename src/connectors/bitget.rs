@@ -30,19 +30,19 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>, pair: String) {
     let symbol = pair.replace("/", "").to_uppercase();
 
     loop {
-        println!("🔌 Connecting to Bitget for {}", symbol);
+        println!("Connecting to Bitget for {}", symbol);
         let ws_url = "wss://ws.bitget.com/v2/ws/public";
 
         let (ws_stream, _) = match connect_async(ws_url).await {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("❌ Bitget WS connect failed: {:?}", e);
+                eprintln!("Bitget WS connect failed: {:?}", e);
                 sleep(Duration::from_millis(500)).await;
                 continue;
             }
         };
 
-        println!("⚡ Bitget WS connected");
+        println!("Bitget WS connected");
 
         let (write, mut read) = ws_stream.split();
         let write = Arc::new(Mutex::new(write));
@@ -62,7 +62,7 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>, pair: String) {
             let _ = w.send(Message::Text(sub.to_string().into())).await;
         }
 
-        println!("📡 Subscribed to Bitget ticker {}", symbol);
+        println!("Subscribed to Bitget ticker {}", symbol);
 
         // Spawn ping task (every 15s)
         let ping_write = Arc::clone(&write);
@@ -102,7 +102,7 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>, pair: String) {
 
                 Ok(Message::Close(_)) => break,
                 Err(e) => {
-                    eprintln!("❌ Bitget WS error: {:?}", e);
+                    eprintln!("Bitget WS error: {:?}", e);
                     break;
                 }
 
@@ -110,7 +110,7 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>, pair: String) {
             }
         }
 
-        eprintln!("⚠️ Bitget connector disconnected. Reconnecting in 5s...");
+        eprintln!("Bitget connector disconnected. Reconnecting in 5s...");
         sleep(Duration::from_millis(500)).await;
     }
 }

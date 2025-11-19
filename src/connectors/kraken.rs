@@ -53,11 +53,11 @@ pub async fn run_kraken_connector(tx: Sender<PriceUpdate>, pair: String) {
     let kraken_subscription_symbol = to_kraken_symbol(&pair);
 
     let url = "wss://ws.kraken.com";
-    println!("[Kraken] connecting : {url}");
+    println!("Kraken connecting : {url}");
 
     match connect_async(url).await {
         Ok((mut ws_stream, _)) => {
-            println!("[Kraken] ✅ Connected");
+            println!("Kraken Connected");
 
             // Subscribe to SOL/USD trades
             let subscribe_msg = serde_json::json!({
@@ -71,10 +71,7 @@ pub async fn run_kraken_connector(tx: Sender<PriceUpdate>, pair: String) {
                 .await
                 .unwrap();
 
-            println!(
-                "[Kraken] 📡 Subscribed to {} trades",
-                kraken_subscription_symbol
-            );
+            println!("Kraken Subscribed to {} trades", kraken_subscription_symbol);
 
             while let Some(msg) = ws_stream.next().await {
                 if let Ok(msg) = msg {
@@ -112,6 +109,6 @@ pub async fn run_kraken_connector(tx: Sender<PriceUpdate>, pair: String) {
                 }
             }
         }
-        Err(e) => eprintln!("[Kraken] ❌ Connection error: {:?}", e),
+        Err(e) => eprintln!("Kraken Connection error: {:?}", e),
     }
 }

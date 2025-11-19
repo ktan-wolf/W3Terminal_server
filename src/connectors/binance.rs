@@ -18,11 +18,11 @@ pub async fn run_binance_connector(tx: Sender<PriceUpdate>, pair: String) {
     let symbol = pair.to_lowercase().replace("/", "");
 
     let url = format!("wss://stream.binance.com:9443/ws/{}@trade", symbol);
-    println!("[Binance] connecting : {url}");
+    println!("Binance connecting : {url}");
 
     match connect_async(url).await {
         Ok((mut ws_stream, _)) => {
-            print!("[Binance] ✅ Connected");
+            print!("Binance Connected");
             while let Some(msg) = ws_stream.next().await {
                 if let Ok(msg) = msg {
                     if msg.is_text() {
@@ -41,6 +41,6 @@ pub async fn run_binance_connector(tx: Sender<PriceUpdate>, pair: String) {
                 }
             }
         }
-        Err(e) => eprintln!("[Binance] ❌ Connection error: {:?}", e),
+        Err(e) => eprintln!("Binance Connection error: {:?}", e),
     }
 }

@@ -81,13 +81,13 @@ pub async fn run_raydium_connector(tx: Sender<PriceUpdate>, pair: String) {
     let config = match get_vault_config(&canonical_pair) {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("[RAYDIUM] Configuration Error: {:?}", e);
+            eprintln!("RAYDIUM Configuration Error: {:?}", e);
             return;
         }
     };
 
     println!(
-        "[RAYDIUM] Starting Raydium price feed for {}...",
+        "RAYDIUM Starting Raydium price feed for {}...",
         canonical_pair
     );
 
@@ -105,11 +105,10 @@ pub async fn run_raydium_connector(tx: Sender<PriceUpdate>, pair: String) {
                 let _ = tx.send(update);
             }
             Err(err) => {
-                println!("[RAYDIUM] Error fetching {}: {:?}", canonical_pair, err);
+                println!("RAYDIUM Error fetching {}: {:?}", canonical_pair, err);
             }
         }
 
         sleep(Duration::from_millis(500)).await;
     }
 }
-

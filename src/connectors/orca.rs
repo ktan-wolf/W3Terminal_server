@@ -45,7 +45,7 @@ pub async fn run_orca_connector(tx: Sender<PriceUpdate>, pair: String) {
             .ok_or_else(|| anyhow::anyhow!("Unsupported pair: {} for Orca connector", pair))?;
 
         let rpc_url = "https://api.mainnet-beta.solana.com";
-        println!("[ORCA] Connecting to Solana RPC for {}: {rpc_url}", pair);
+        println!("ORCA Connecting to Solana RPC for {}: {rpc_url}", pair);
 
         let rpc_client =
             solana_client::nonblocking::rpc_client::RpcClient::new(rpc_url.to_string());
@@ -58,7 +58,7 @@ pub async fn run_orca_connector(tx: Sender<PriceUpdate>, pair: String) {
             match rpc_client.get_account_data(&pool_pubkey).await {
                 Ok(data_bytes) => {
                     if data_bytes.len() < SQRT_PRICE_OFFSET + 16 {
-                        println!("[ORCA] Account data too short for {}", canonical_pair);
+                        println!("ORCA Account data too short for {}", canonical_pair);
                         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
                         continue;
                     }
@@ -85,7 +85,7 @@ pub async fn run_orca_connector(tx: Sender<PriceUpdate>, pair: String) {
                 }
                 Err(err) => {
                     println!(
-                        "[ORCA] Error fetching account data for {}: {:?}",
+                        "ORCA Error fetching account data for {}: {:?}",
                         canonical_pair, err
                     );
                 }
@@ -98,6 +98,6 @@ pub async fn run_orca_connector(tx: Sender<PriceUpdate>, pair: String) {
     }
     .await
     {
-        eprintln!("❌ Orca connector error for {}: {:?}", pair, e);
+        eprintln!("Orca connector error for {}: {:?}", pair, e);
     }
 }

@@ -30,19 +30,19 @@ pub async fn run_coinbase_connector(tx: Sender<PriceUpdate>, pair: String) {
         coinbase_product_id = format!("{}-USD", base_currency);
         // Log the change for debugging
         println!(
-            "[Coinbase] ⚠️ Falling back to product ID: {} (Requested: {})",
+            "Coinbase Falling back to product ID: {} (Requested: {})",
             coinbase_product_id, canonical_pair
         );
     }
 
     println!(
-        "[Coinbase] connecting to pair: {} (Product ID: {})",
+        "Coinbase connecting to pair: {} (Product ID: {})",
         canonical_pair, coinbase_product_id
     );
 
     match connect_async(url).await {
         Ok((mut ws_stream, _)) => {
-            println!("[Coinbase] ✅ Connected");
+            println!("Coinbase Connected");
 
             // Subscribe using the potentially modified product ID
             let subscribe_msg = serde_json::json!({
@@ -56,7 +56,7 @@ pub async fn run_coinbase_connector(tx: Sender<PriceUpdate>, pair: String) {
                 .await
                 .is_ok()
             {
-                println!("[Coinbase] 📡 Subscribed to {} trades", canonical_pair);
+                println!("Coinbase Subscribed to {} trades", canonical_pair);
             }
 
             while let Some(msg) = ws_stream.next().await {
@@ -83,11 +83,7 @@ pub async fn run_coinbase_connector(tx: Sender<PriceUpdate>, pair: String) {
             }
         }
         Err(e) => {
-            eprintln!(
-                "[Coinbase] ❌ Connection error for {}: {:?}",
-                canonical_pair, e
-            );
+            eprintln!("Coinbase Connection error for {}: {:?}", canonical_pair, e);
         }
     }
 }
-

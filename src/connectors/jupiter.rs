@@ -43,7 +43,7 @@ pub async fn run_jupiter_connector(tx: Sender<PriceUpdate>, pair: String) {
         Some(mint) => mint,
         None => {
             eprintln!(
-                "[DEX] Error: Unsupported base token in pair {}. Only SOL, ETH, BTC supported.",
+                "Jupiter Error Unsupported base token in pair {}. Only SOL, ETH, BTC supported.",
                 canonical_pair
             );
             return;
@@ -51,7 +51,7 @@ pub async fn run_jupiter_connector(tx: Sender<PriceUpdate>, pair: String) {
     };
 
     println!(
-        "[JUPITER] Starting Jupiter (API V3) feed for {}. Mint: {}",
+        "JUPITER Starting Jupiter (API V3) feed for {}. Mint: {}",
         canonical_pair, mint_address
     );
 
@@ -83,20 +83,20 @@ pub async fn run_jupiter_connector(tx: Sender<PriceUpdate>, pair: String) {
                             let _ = tx.send(update);
                         } else {
                             println!(
-                                "[DEX] Warning: Price data not found for mint {}.",
+                                "Jupiter Warning: Price data not found for mint {}.",
                                 expected_key
                             );
                         }
                     }
 
                     Err(e) => {
-                        println!("[DEX] JSON parse error for {}: {:?}", canonical_pair, e);
+                        println!("Jupiter JSON parse error for {}: {:?}", canonical_pair, e);
                     }
                 }
             }
 
             Err(e) => {
-                println!("[DEX] Request error for {}: {:?}", canonical_pair, e);
+                println!("Jupiter Request error for {}: {:?}", canonical_pair, e);
             }
         }
 

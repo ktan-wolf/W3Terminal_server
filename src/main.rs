@@ -62,8 +62,8 @@ async fn main() {
         .layer(Extension(db_pool.clone())); // pass db_pool to handlers
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8081));
-    println!("💸 Dynamic Price Subscriber running at ws://{addr}/ws/subscribe (Arbitrage Enabled)");
-    println!("📊 Historical prices endpoint running at http://{addr}/historical?pair=SOL/USDT");
+    println!("Dynamic Price Subscriber running at ws://{addr}/ws/subscribe (Arbitrage Enabled)");
+    println!("Historical prices endpoint running at http://{addr}/historical?pair=SOL/USDT");
 
     let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -76,7 +76,7 @@ async fn ws_handler_subscribe(ws: WebSocketUpgrade, db_pool: PgPool) -> impl Int
 }
 
 async fn handle_socket_subscribe(mut socket: WebSocket, db_pool: PgPool) {
-    println!("⚡ Client connected to dynamic subscription feed. Awaiting pair request...");
+    println!("Client connected to dynamic subscription feed. Awaiting pair request...");
     let (mut sender, mut receiver) = socket.split();
 
     // 1. Await the initial message with the token pair
@@ -88,16 +88,16 @@ async fn handle_socket_subscribe(mut socket: WebSocket, db_pool: PgPool) {
                     req.token_a.to_uppercase(),
                     req.token_b.to_uppercase()
                 );
-                println!("✅ Client requested pair: {}", pair_str);
+                println!("Client requested pair: {}", pair_str);
                 pair_str
             }
             Err(e) => {
-                println!("❌ Invalid pair request format: {}. Disconnecting.", e);
+                println!("Invalid pair request format: {}. Disconnecting.", e);
                 return;
             }
         },
         _ => {
-            println!("❌ Client disconnected before sending pair request.");
+            println!("Client disconnected before sending pair request.");
             return;
         }
     };
@@ -111,7 +111,7 @@ async fn handle_socket_subscribe(mut socket: WebSocket, db_pool: PgPool) {
 
     let mut connector_handles: Vec<JoinHandle<()>> = Vec::new();
 
-    println!("🔌 Spawning dedicated connectors for pair: {}", pair);
+    println!("Spawning dedicated connectors for pair: {}", pair);
 
     // DYNAMIC SPAWNING: Pass raw price sender (tx_price_raw) to all connectors.
     connector_handles.push(tokio::spawn(run_binance_connector(
@@ -194,7 +194,7 @@ async fn handle_socket_subscribe(mut socket: WebSocket, db_pool: PgPool) {
             if let Ok(json) = serde_json::to_string(&feed) {
                 if sender.send(Message::Text(json.into())).await.is_err() {
                     println!(
-                        "❌ Client disconnected from {} feed (send failed)",
+                        "Client disconnected from {} feed (send failed)",
                         pair_clone_stream
                     );
                     break;
@@ -207,7 +207,7 @@ async fn handle_socket_subscribe(mut socket: WebSocket, db_pool: PgPool) {
     while let Some(Ok(_)) = receiver.next().await {}
 
     println!(
-        "❌ Client disconnected from dynamic subscription for {}. Shutting down dedicated connectors...",
+        "Client disconnected from dynamic subscription for {}. Shutting down dedicated connectors...",
         pair
     );
 
