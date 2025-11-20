@@ -1,17 +1,17 @@
 use super::state::PriceUpdate;
 use futures_util::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use tokio::sync::broadcast::Sender;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 #[derive(Debug, Deserialize)]
 struct KrakenTradeEntry(
-    String, // price
-    String, // volume
-    String, // timestamp (seconds.decimals)
-    String, // buy/sell
-    String, // market/limit
-    String, // misc
+    String,                     // price
+    #[allow(dead_code)] String, // volume
+    String,                     // timestamp (seconds.decimals)
+    #[allow(dead_code)] String, // buy/sell
+    #[allow(dead_code)] String, // market/limit
+    #[allow(dead_code)] String, // misc
 );
 
 // Helper function to map canonical pair (e.g., BTC/USDC) to Kraken V1 symbol (e.g., XBT/USDC)
@@ -44,7 +44,6 @@ fn to_kraken_symbol(pair: &str) -> String {
 }
 
 pub async fn run_kraken_connector(tx: Sender<PriceUpdate>, pair: String) {
-    // Convert canonical pair (e.g., BTC/USDC) to the format Kraken expects
     let kraken_subscription_symbol = to_kraken_symbol(&pair);
 
     let url = "wss://ws.kraken.com";
@@ -114,4 +113,3 @@ pub async fn run_kraken_connector(tx: Sender<PriceUpdate>, pair: String) {
         Err(e) => eprintln!("Kraken Connection error: {:?}", e),
     }
 }
-

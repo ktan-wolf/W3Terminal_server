@@ -9,10 +9,10 @@ use tokio::time::{Duration, sleep};
 // Jupiter Price API V3 response format
 #[derive(Debug, Deserialize)]
 pub struct JupiterPrice {
-    pub usdPrice: f64,
-    pub blockId: u64,
-    pub decimals: u8,
-    pub priceChange24h: f64,
+    pub usd_price: f64,
+    pub _block_id: u64,
+    pub _decimals: u8,
+    pub _price_change24h: f64,
 }
 
 // Map<mint → JupiterPrice>
@@ -83,7 +83,7 @@ pub async fn run_jupiter_connector(tx: Sender<PriceUpdate>, pair: String) {
                                 source: "Jupiter".into(),
                                 // 3. Use the original canonical pair for output
                                 pair: canonical_pair.clone(),
-                                price: price_data.usdPrice,
+                                price: price_data.usd_price,
                                 timestamp, // Added timestamp field
                             };
 

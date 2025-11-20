@@ -1,6 +1,6 @@
 use super::state::PriceUpdate;
 use futures_util::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::time::{SystemTime, UNIX_EPOCH}; // Added for fallback timestamp
 use tokio::sync::broadcast::Sender;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
@@ -12,17 +12,16 @@ struct OkxTrade {
 }
 
 #[derive(Debug, Deserialize)]
-struct OkxData {
+struct _OkxData {
     data: Vec<OkxTrade>,
 }
 
 #[derive(Debug, Deserialize)]
 struct OkxMsg {
-    arg: serde_json::Value,
+    _arg: serde_json::Value,
     data: Option<Vec<OkxTrade>>,
 }
 
-// UPDATED SIGNATURE: Accept the `pair` string
 pub async fn run_okx_connector(tx: Sender<PriceUpdate>, pair: String) {
     let url = "wss://ws.okx.com:8443/ws/v5/public";
 
@@ -102,4 +101,3 @@ pub async fn run_okx_connector(tx: Sender<PriceUpdate>, pair: String) {
         Err(e) => eprintln!("OKX Connection error for {}: {:?}", canonical_pair, e),
     }
 }
-

@@ -10,21 +10,21 @@ use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 #[derive(Debug, Deserialize)]
 struct BitgetEnvelope {
-    event: Option<String>,
-    arg: Option<BitgetArg>,
+    _event: Option<String>,
+    _arg: Option<BitgetArg>,
     data: Option<Vec<BitgetTicker>>,
 }
 
 #[derive(Debug, Deserialize)]
 struct BitgetArg {
-    instType: String,
-    channel: String,
-    instId: String,
+    _inst_type: String,
+    _channel: String,
+    _inst_id: String,
 }
 
 #[derive(Debug, Deserialize)]
 struct BitgetTicker {
-    lastPr: String, // IMPORTANT: Bitget uses lastPr
+    last_pr: String, // IMPORTANT: Bitget uses lastPr
 }
 
 pub async fn run_bitget_connector(tx: Sender<PriceUpdate>, pair: String) {
@@ -52,9 +52,9 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>, pair: String) {
         let sub = serde_json::json!({
             "op": "subscribe",
             "args": [{
-                "instType": "SPOT",
+                "inst_type": "SPOT",
                 "channel": "ticker",
-                "instId": symbol
+                "inst_id": symbol
             }]
         });
 
@@ -88,7 +88,7 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>, pair: String) {
                     if let Ok(parsed) = serde_json::from_str::<BitgetEnvelope>(&text) {
                         if let Some(ticks) = parsed.data {
                             for tick in ticks {
-                                if let Ok(price) = tick.lastPr.parse::<f64>() {
+                                if let Ok(price) = tick.last_pr.parse::<f64>() {
                                     // Generate System Timestamp since Bitget ticker object didn't have one in struct
                                     let timestamp = SystemTime::now()
                                         .duration_since(UNIX_EPOCH)
@@ -127,4 +127,3 @@ pub async fn run_bitget_connector(tx: Sender<PriceUpdate>, pair: String) {
         sleep(Duration::from_millis(500)).await;
     }
 }
-

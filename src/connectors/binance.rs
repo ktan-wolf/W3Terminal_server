@@ -9,7 +9,7 @@ struct BinanceTrade {
     #[serde(rename = "p")]
     price: String,
     #[serde(rename = "q")]
-    quantity: String,
+    _quantity: String,
     #[serde(rename = "T")]
     timestamp: u64,
 }

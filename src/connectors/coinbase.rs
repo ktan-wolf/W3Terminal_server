@@ -1,6 +1,6 @@
 use super::state::PriceUpdate;
 use futures_util::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::time::{SystemTime, UNIX_EPOCH}; // Added for timestamp generation
 use tokio::sync::broadcast::Sender;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
@@ -11,8 +11,8 @@ struct CoinbaseMatch {
     msg_type: String,
 
     price: Option<String>,
-    size: Option<String>,
-    time: Option<String>,
+    _size: Option<String>,
+    _time: Option<String>,
 }
 
 pub async fn run_coinbase_connector(tx: Sender<PriceUpdate>, pair: String) {
@@ -93,4 +93,3 @@ pub async fn run_coinbase_connector(tx: Sender<PriceUpdate>, pair: String) {
         }
     }
 }
-

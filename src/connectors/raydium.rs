@@ -2,21 +2,17 @@ use std::str::FromStr;
 
 use crate::connectors::state::PriceUpdate;
 use anyhow::{Result, anyhow};
-use solana_account_decoder::UiAccountEncoding; // Kept as it was in the original imports
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::pubkey::Pubkey;
 use std::time::{SystemTime, UNIX_EPOCH}; // Added for timestamp generation
 use tokio::sync::broadcast::Sender;
 use tokio::time::{Duration, sleep};
 
-// Removed hardcoded constants that will now be dynamic
-
 const USDC_DECIMALS: u32 = 6;
 const SOL_DECIMALS: u32 = 9;
 const ETH_DECIMALS: u32 = 7; // Assuming 8 decimals for ETH as per previous context
 const BTC_DECIMALS: u32 = 8; // Assuming 8 decimals for BTC as per previous context
 
-// --- New Structure for Dynamic Pair Configuration ---
 struct VaultConfig {
     token_a_vault: &'static str,
     token_b_vault: &'static str, // Always USDC vault in this context
@@ -24,7 +20,6 @@ struct VaultConfig {
     token_b_decimals: u32, // Always USDC_DECIMALS
 }
 
-/// Helper function to map the canonical pair to its Raydium vault configuration.
 fn get_vault_config(pair: &str) -> Result<VaultConfig> {
     match pair {
         "SOL/USDC" => Ok(VaultConfig {
@@ -49,7 +44,6 @@ fn get_vault_config(pair: &str) -> Result<VaultConfig> {
     }
 }
 
-/// Reads Raydium vault balances and computes price based on dynamic config
 async fn fetch_raydium_price(rpc: &RpcClient, config: &VaultConfig) -> Result<f64> {
     // Note: Token A is the base (e.g., SOL, BTC, ETH), Token B is the quote (USDC).
     let token_a_vault = Pubkey::from_str(config.token_a_vault)?;
@@ -74,8 +68,6 @@ async fn fetch_raydium_price(rpc: &RpcClient, config: &VaultConfig) -> Result<f6
     Ok(price)
 }
 
-/// Runs the Raydium price feed loop
-// UPDATED SIGNATURE: Accept the `pair` string
 pub async fn run_raydium_connector(tx: Sender<PriceUpdate>, pair: String) {
     let canonical_pair = pair.clone();
 
@@ -120,4 +112,3 @@ pub async fn run_raydium_connector(tx: Sender<PriceUpdate>, pair: String) {
         sleep(Duration::from_millis(500)).await;
     }
 }
-

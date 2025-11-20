@@ -13,7 +13,7 @@ use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 #[derive(Debug, Deserialize)]
 struct HtxEnvelope {
     #[serde(default)]
-    ch: String,
+    _ch: String,
     #[serde(default)]
     tick: Option<HtxTick>,
     ts: Option<u64>, // Added: HTX sends timestamp at root
@@ -141,4 +141,3 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>, pair: String) {
         sleep(Duration::from_millis(500)).await;
     }
 }
-

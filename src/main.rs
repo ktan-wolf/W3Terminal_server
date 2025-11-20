@@ -77,7 +77,7 @@ async fn ws_handler_subscribe(
     ws.on_upgrade(move |socket| handle_socket_subscribe(socket, state))
 }
 
-async fn handle_socket_subscribe(mut socket: WebSocket, state: Arc<AppState>) {
+async fn handle_socket_subscribe(socket: WebSocket, state: Arc<AppState>) {
     let (mut sender, mut receiver) = socket.split();
 
     // 1. Wait for Client to request a pair (e.g., SOL/USDT)
@@ -95,37 +95,31 @@ async fn handle_socket_subscribe(mut socket: WebSocket, state: Arc<AppState>) {
 
     println!("Client subscribed to: {}", pair);
 
-    // --- FIX START ---
     // 2. INSTANTLY send Cached History (Get data, Drop lock, THEN Send)
     let history_json = {
         // Open a new scope just for locking
         let lock = state.cache.lock().unwrap();
         let history = lock.get_history(&pair);
 
-        // Serialize inside the lock or outside, doesn't matter,
-        // but we MUST NOT await here.
         if !history.is_empty() {
             serde_json::to_string(&history).ok()
         } else {
             None
         }
-    }; // <--- 'lock' is dropped here automatically because the scope ended
+    };
 
-    // Now we are safe to await because we don't hold the lock anymore
     if let Some(json) = history_json {
         if let Err(e) = sender.send(Message::Text(json.into())).await {
             println!("Failed to send history: {}", e);
             return;
         }
     }
-    // --- FIX END ---
 
     // 3. Setup Broadcast Channels for Live Data
     let (tx_price_raw, mut rx_price_raw) = broadcast::channel::<PriceUpdate>(5000);
     let (tx_arb_feed, mut rx_arb_feed) = broadcast::channel::<ArbitrageFeed>(5000);
 
     // 4. Spawn Connectors
-    // Note: Ensure run_binance_connector matches the arguments passed here
     tokio::spawn(run_binance_connector(tx_price_raw.clone(), pair.clone()));
     tokio::spawn(run_backpack_connector(tx_price_raw.clone(), pair.clone()));
     tokio::spawn(run_bitfinex_connector(tx_price_raw.clone(), pair.clone()));

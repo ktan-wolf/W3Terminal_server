@@ -8,15 +8,15 @@ use tokio_tungstenite::connect_async;
 #[derive(Debug, Deserialize)]
 struct TradeMessage {
     #[serde(rename = "e")]
-    event: String,
+    _event: String,
     #[serde(rename = "s")]
-    symbol: String,
+    _symbol: String,
     #[serde(rename = "p")]
     price: String,
     #[serde(rename = "q")]
-    quantity: String,
+    _quantity: String,
     #[serde(rename = "t")]
-    trade_id: u64,
+    _trade_id: u64,
     #[serde(rename = "T")]
     ts: u64,
 }

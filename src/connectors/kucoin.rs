@@ -1,7 +1,7 @@
 use super::state::PriceUpdate;
 use bytes::Bytes;
 use futures_util::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH}; // Added for timestamp generation
 use tokio::sync::{Mutex, broadcast::Sender};
@@ -10,20 +10,34 @@ use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 #[derive(Debug, Deserialize)]
 struct BulletResponse {
-    code: String,
+    #[serde(rename = "code")]
+    _code: String,
     data: BulletData,
 }
 
 #[derive(Debug, Deserialize)]
 struct BulletData {
     token: String,
-    instanceServers: Vec<InstanceServer>,
+
+    #[serde(rename = "instanceServers")]
+    instance_servers: Vec<InstanceServer>,
 }
 
 #[derive(Debug, Deserialize)]
 struct InstanceServer {
     endpoint: String,
-    pingInterval: u64,
+
+    #[serde(rename = "pingInterval")]
+    ping_interval: u64,
+
+    #[serde(rename = "pingTimeout")]
+    _ping_timeout: Option<u64>,
+
+    #[serde(default)]
+    _encrypt: Option<bool>,
+
+    #[serde(default)]
+    _protocol: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -73,13 +87,13 @@ pub async fn run_kucoin_connector(tx: Sender<PriceUpdate>, pair: String) {
             }
         };
 
-        if bullet.data.instanceServers.is_empty() {
+        if bullet.data.instance_servers.is_empty() {
             eprintln!("KuCoin Error: No instance servers found");
             sleep(Duration::from_secs(5)).await;
             continue;
         }
 
-        let server = &bullet.data.instanceServers[0];
+        let server = &bullet.data.instance_servers[0];
         let ws_url = format!("{}?token={}", server.endpoint, bullet.data.token);
 
         // 2️⃣ Connect to WebSocket
@@ -122,7 +136,7 @@ pub async fn run_kucoin_connector(tx: Sender<PriceUpdate>, pair: String) {
 
         // 4️⃣ Ping task to keep WS alive
         let ping_write = Arc::clone(&write);
-        let ping_interval = Duration::from_millis(server.pingInterval);
+        let ping_interval = Duration::from_millis(server.ping_interval);
         tokio::spawn(async move {
             loop {
                 sleep(ping_interval).await;
@@ -180,4 +194,3 @@ pub async fn run_kucoin_connector(tx: Sender<PriceUpdate>, pair: String) {
         sleep(Duration::from_millis(500)).await;
     }
 }
-
