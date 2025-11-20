@@ -37,7 +37,7 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>, pair: String) {
     let channel = format!("market.{}.trade.detail", symbol);
 
     loop {
-        println!("HTX: connecting to {}", canonical_pair);
+        //println!("HTX: connecting to {}", canonical_pair);
 
         let ws_url = "wss://api-aws.huobi.pro/ws";
         let (ws_stream, _) = match connect_async(ws_url).await {
@@ -49,7 +49,7 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>, pair: String) {
             }
         };
 
-        println!("HTX: connected for {}", canonical_pair);
+        //println!("HTX: connected for {}", canonical_pair);
 
         let (write, mut read) = ws_stream.split();
         let write = Arc::new(Mutex::new(write));
@@ -69,7 +69,7 @@ pub async fn run_htx_connector(tx: Sender<PriceUpdate>, pair: String) {
             }
         }
 
-        println!("HTX subscribed to {}", canonical_pair);
+        //println!("HTX subscribed to {}", canonical_pair);
 
         // Ping task
         let ping_write = Arc::clone(&write);
