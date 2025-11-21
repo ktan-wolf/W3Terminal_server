@@ -1,4 +1,4 @@
-use super::state::PriceUpdate;
+use crate::state::PriceUpdate;
 use bytes::Bytes;
 use flate2::read::GzDecoder;
 use futures_util::{SinkExt, StreamExt};

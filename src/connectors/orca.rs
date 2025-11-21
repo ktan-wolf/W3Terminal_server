@@ -1,4 +1,4 @@
-use crate::connectors::state::PriceUpdate;
+use crate::state::PriceUpdate;
 use std::convert::TryInto;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH}; // Added for timestamp generation

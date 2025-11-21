@@ -1,4 +1,4 @@
-use crate::connectors::state::PriceUpdate;
+use crate::state::PriceUpdate;
 use serde::Serialize;
 use std::collections::HashMap;
 use tokio::sync::broadcast::Sender;

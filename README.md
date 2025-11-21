@@ -1,73 +1,171 @@
-# 🧠 Web3 Terminal — High-Performance Arbitrage Dashboard
+# ⚡ W3:Terminal ENGINE
 
-**Web3 Terminal** is a high-performance, real-time cryptocurrency arbitrage dashboard built with **Rust**, **Axum**, **Solana**, and **Next.js**.  
-It provides a unified interface to monitor fragmented liquidity across **Centralized Exchanges (CEXs)** and **Decentralized Exchanges (DEXs)** in real-time.
+![Version](https://img.shields.io/badge/version-2.0.1_NEURAL-cyan.svg)
+![Stack](https://img.shields.io/badge/core-RUST_%7C_AXUM-orange.svg)
+![Frontend](https://img.shields.io/badge/ui-NEXT.JS_%7C_CYBERPUNK-purple.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-> ⚡ Built for speed, concurrency, and reliability — powered by Rust on the backend and Next.js on the frontend.
+**W3:Terminal Engine** is a high-frequency, quantum-styled cryptocurrency
+arbitrage terminal. It fuses a multi-threaded **Rust** backend with a
+holographic **Next.js** frontend to visualize and capture liquidity
+fractures across Centralized (CEX) and Decentralized (DEX) exchanges in
+real-time.
 
----
+> *"The gap between price and value is where the profit lies."*
 
-## 🚀 Current Status
+------------------------------------------------------------------------
 
-🟢 **In Active Development**
+## 🧠 System Architecture
 
-The terminal now:
-- Streams and normalizes **live price data** from multiple exchanges:
-  - **Binance (CEX)** — `SOL/USDT`
-  - **Jupiter (DEX)** — `SOL/USDC` via API
-  - **Raydium (DEX)** — `SOL/USDC` on-chain liquidity pool
-- Calculates and displays **arbitrage opportunities** across all sources in real-time.
-- Sends **both individual prices and arbitrage info** to the frontend over WebSocket.
+The engine operates on a **Hybrid Connectivity Model**, bridging three
+distinct data protocols into a unified, zero-latency event stream.
 
----
+``` mermaid
+graph TD
+    subgraph "Data Ingestion Layer (Rust)"
+        A[CEX WebSockets] -->|Binance, OKX, Kraken...| D(Normalization Hub)
+        B[Solana RPC] -->|Direct Vault State| D
+        C[DEX API Polling] -->|Jupiter V3| D
+    end
 
-## ✨ Features
+    subgraph "Processing Core"
+        D -->|PriceUpdate| E{Arbitrage Engine}
+        D -->|Stream| F[Market Cache]
+        E -->|Compute Spread| G[Broadcast Channel]
+    end
 
-### 🦀 High-Performance Rust Backend
-- Built with **[Axum](https://github.com/tokio-rs/axum)** and **Tokio** for maximum concurrency.
-- Designed for low-latency, high-throughput real-time data handling.
+    subgraph "Visual Interface (Next.js)"
+        G -->|WS Push| H[Cyberpunk Dashboard]
+        H -->|Render| I[Live Charts & Signals]
+    end
+```
 
-### 📡 Real-Time WebSocket Broadcasting
-- A concurrent-safe **WebSocket server** broadcasts:
-  - **Normalized price updates** from all connected exchanges (Binance, Jupiter, Raydium)
-  - **Arbitrage opportunities** with best buy/sell source and spread percentage.
+------------------------------------------------------------------------
 
-### 💱 Multi-Source Data Pipelines
-- **CEX Data Pipeline:** Streams live trades from **Binance** WebSocket (`SOL/USDT`).
-- **DEX Data Pipeline:** Streams prices from **Raydium** on-chain (`SOL/USDC`) and **Jupiter API V3** (`SOL/USDC`).
-- Normalizes all prices into a single `PriceUpdate` structure for unified processing.
+## 🎥 Demo Video
 
-### 📊 Arbitrage Engine
-- Continuously compares prices across **Binance**, **Jupiter**, and **Raydium**.
-- Computes:
-  - `best_buy_source` and `best_buy_price`
-  - `best_sell_source` and `best_sell_price`
-  - `spread_percent`  
-- Broadcasts **ArbitrageFeed** to all connected clients in real-time.
+A full walkthrough demo of the **W3:Terminal Engine** is  available
+here:
 
-### 🖥 Frontend Dashboard
-- Built with **Next.js** (App Router) and **React Hooks**.
-- Displays:
-  - Live prices from all exchanges
-  - Real-time arbitrage opportunities
-- Automatically updates when any price changes or arbitrage arises.
+<video width="720" controls>
+  <source src="public/demo.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
 
----
+------------------------------------------------------------------------
 
-## 🔧 Tech Stack
+## ✨ Key Features
 
-| Layer           | Technology                                      |
-|-----------------|------------------------------------------------|
-| Backend         | Rust, Axum, Tokio, tokio-tungstenite          |
-| Solana DEX Data | solana-client, solana-pubsub-client           |
-| Frontend        | Next.js, React, TypeScript                     |
-| Real-Time Comms | WebSocket (broadcast channels in Rust)        |
-| APIs            | Jupiter V3 API for DEX price feeds            |
+### 🦀 Rust Backend (/server)
 
----
+-   **Hybrid Connector System:**
+    -   **WebSockets:** Persistent, reconnecting streams for CEXs
+        (Binance, Coinbase, Kraken, OKX, Bybit, KuCoin, Bitget, HTX,
+        Bitfinex, Backpack).
+    -   **Direct RPC State Reading:** Reads raw `sqrt_price` from Orca
+        Whirlpools and token vault balances from Raydium for maximum
+        speed.
+-   **In-Memory Arbitrage:** Microsecond-level best-bid/best-ask
+    computation.
+-   **Tokio Runtime:** Fully asynchronous, handling thousands of
+    concurrent tick updates.
 
-## ⚡ Next Steps
-- Sprint 4: Store historical price data and visualize charts (TimescaleDB + TradingView lightweight-charts).  
-- Sprint 5: Implement one-click Solana trade execution using Jupiter API + wallet adapter.  
-- Sprint 6: UI/UX polish, responsive design, multiple exchange integrations, and deployment.
+### 🖥️ Cyberpunk Frontend (/client)
 
+-   Custom neon-reactive cyberpunk UI.
+-   Real-time charts, opportunity radar, and reconnecting WebSocket
+    hooks.
+-   Market surveillance over 13+ liquidity sources.
+
+------------------------------------------------------------------------
+
+## 🔌 Supported Exchanges
+
+### Centralized (CEX)
+
+Binance, OKX, Bybit, HTX, KuCoin, Bitget, Bitfinex, Backpack.
+
+### Decentralized (Solana DEX)
+
+Orca (Whirlpools --- Direct RPC), Raydium, Jupiter V3 API.
+
+------------------------------------------------------------------------
+
+## 🛠️ Installation & Setup
+
+### **Prerequisites**
+
+-   Rust (Stable)
+-   Node.js (18+)
+-   Solana RPC URL
+
+------------------------------------------------------------------------
+
+### **1. Run the Engine**
+
+``` bash
+cd W3:Terminal_server
+cargo run --release
+```
+📌 NOTE : Change the address to localhost
+
+Access endpoint:
+
+    ws://127.0.0.1:8081/ws/subscribe
+
+------------------------------------------------------------------------
+
+### **2. Launch Next.js Dashboard**
+
+📌 NOTE : Change the url to Access endpoint => (ws://127.0.0.1:8081/ws/subscribe)
+
+``` bash
+cd W3:Terminal_client
+npm install
+npm run dev
+```
+
+Visit → http://localhost:3000
+
+------------------------------------------------------------------------
+
+## 🎮 Usage
+
+1.  Open dashboard (auto-connects to WebSocket)
+2.  Enter pair (SOL/USDC, BTC/USDC)
+3.  Click **SYNC**
+4.  Watch live market grid & arbitrage signals
+
+------------------------------------------------------------------------
+
+## 📂 Project Structure
+
+    ├── W3:Terminal_server/
+    │   ├── src/
+    │   │   ├── connectors/
+    │   │   │   ├── binance.rs
+    │   │   │   ├── orca.rs
+    │   │   │   ├── raydium.rs
+    │   │   │   └── ...
+    │   │   ├── arbitrage_engine.rs
+    │   │   └── main.rs
+    │   └── Cargo.toml
+    │
+    └── W3:Terminal_client/
+        ├── app/
+        │   ├── components/
+        │   └── page.tsx
+        ├── lib/utils.ts
+        └── tailwind.config.ts
+
+------------------------------------------------------------------------
+
+## 🤝 Contributing
+
+PRs welcome --- open an issue first for major proposals.
+
+------------------------------------------------------------------------
+
+## 📄 License
+
+MIT License --- Developed by the **W3:Terminal Team**.

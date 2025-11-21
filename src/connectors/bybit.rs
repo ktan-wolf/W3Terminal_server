@@ -4,7 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::broadcast::Sender;
 use tokio_tungstenite::connect_async;
 
-use crate::connectors::state::PriceUpdate;
+use crate::state::PriceUpdate;
 
 #[derive(Debug, Deserialize)]
 struct BybitTickerData {
@@ -79,4 +79,3 @@ pub async fn run_bybit_connector(tx: Sender<PriceUpdate>, pair: String) {
 
     println!("Bybit WebSocket closed.");
 }
-

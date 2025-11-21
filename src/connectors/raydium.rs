@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::connectors::state::PriceUpdate;
+use crate::state::PriceUpdate;
 use anyhow::{Result, anyhow};
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::pubkey::Pubkey;

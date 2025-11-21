@@ -1,4 +1,4 @@
-use crate::connectors::state::PriceUpdate;
+use crate::state::PriceUpdate;
 use reqwest::Client;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -112,4 +112,3 @@ pub async fn run_jupiter_connector(tx: Sender<PriceUpdate>, pair: String) {
         sleep(Duration::from_millis(500)).await;
     }
 }
-

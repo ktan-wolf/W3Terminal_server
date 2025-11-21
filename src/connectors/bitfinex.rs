@@ -1,4 +1,5 @@
-use super::state::PriceUpdate;
+use crate::state::PriceUpdate;
+
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{Value, json};
 use std::time::{SystemTime, UNIX_EPOCH}; // Added for timestamp generation
@@ -119,4 +120,3 @@ pub async fn run_bitfinex_connector(tx: Sender<PriceUpdate>, pair: String) {
 
     eprintln!("Bitfinex Connector for {} stopped.", canonical_pair);
 }
-

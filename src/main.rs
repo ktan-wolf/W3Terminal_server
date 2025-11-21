@@ -1,5 +1,10 @@
+pub mod arbitrage_engine;
 mod connectors;
+pub mod state;
+#[allow(unused_imports)]
+pub use state::*;
 
+use arbitrage_engine::{ArbitrageEngine, ArbitrageFeed};
 use axum::{
     Router,
     extract::State, // Use Axum State instead of Extension for cleaner architecture
@@ -8,24 +13,15 @@ use axum::{
     routing::get,
 };
 use connectors::{
-    arbitrage_engine::{ArbitrageEngine, ArbitrageFeed},
-    backpack::run_backpack_connector,
-    binance::run_binance_connector,
-    bitfinex::run_bitfinex_connector,
-    bitget::run_bitget_connector,
-    bybit::run_bybit_connector,
-    coinbase::run_coinbase_connector,
-    htx::run_htx_connector,
-    jupiter::run_jupiter_connector,
-    kraken::run_kraken_connector,
-    kucoin::run_kucoin_connector,
-    okx::run_okx_connector,
-    orca::run_orca_connector,
-    raydium::run_raydium_connector,
-    state::{MarketCache, PriceUpdate},
+    backpack::run_backpack_connector, binance::run_binance_connector,
+    bitfinex::run_bitfinex_connector, bitget::run_bitget_connector, bybit::run_bybit_connector,
+    coinbase::run_coinbase_connector, htx::run_htx_connector, jupiter::run_jupiter_connector,
+    kraken::run_kraken_connector, kucoin::run_kucoin_connector, okx::run_okx_connector,
+    orca::run_orca_connector, raydium::run_raydium_connector,
 };
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
+use state::{MarketCache, PriceUpdate};
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
@@ -58,7 +54,7 @@ async fn main() {
         .route("/ws/subscribe", get(ws_handler_subscribe))
         .with_state(app_state);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 8081));
+    let addr = SocketAddr::from(([127, 0, 0, 1], 8081));
     println!(
         "Engine running on ws://{}/ws/subscribe (In-Memory Mode)",
         addr

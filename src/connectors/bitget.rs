@@ -1,4 +1,4 @@
-use super::state::PriceUpdate;
+use crate::state::PriceUpdate;
 use bytes::Bytes;
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
