@@ -16,7 +16,7 @@ struct BinanceTrade {
 
 pub async fn run_binance_connector(tx: Sender<PriceUpdate>, pair: String) {
     let symbol = pair.to_lowercase().replace("/", "");
-    let url = format!("wss://stream.binance.com:9443/ws/{}@trade", symbol);
+    let url = format!("wss://stream.binance.us:9443/ws/{}@trade", symbol);
 
     println!("Connecting to Binance: {}", url);
 
@@ -68,4 +68,3 @@ pub async fn run_binance_connector(tx: Sender<PriceUpdate>, pair: String) {
         Err(e) => eprintln!("Binance connection error: {:?}", e),
     }
 }
-
