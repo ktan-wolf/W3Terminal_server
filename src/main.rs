@@ -54,7 +54,7 @@ async fn main() {
         .route("/ws/subscribe", get(ws_handler_subscribe))
         .with_state(app_state);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8081));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8081));
     println!(
         "Engine running on ws://{}/ws/subscribe (In-Memory Mode)",
         addr
