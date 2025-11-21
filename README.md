@@ -48,7 +48,7 @@ A full walkthrough demo of the **W3:Terminal Engine** is  available
 here:
 
 <video width="720" controls>
-  <source src="public/demo.mp4" type="video/mp4">
+  <source src="./public/demo.mp4" type="video/mp4">
   Your browser does not support the video tag.
 </video>
 
