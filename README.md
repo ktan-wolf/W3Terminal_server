@@ -101,6 +101,8 @@ Orca (Whirlpools --- Direct RPC), Raydium, Jupiter V3 API.
 
 ### **1. Run the Engine**
 
+github link : [**Server Repo**](https://github.com/ktan-wolf/W3Terminal_server) 
+
 ``` bash
 cd W3:Terminal_server
 cargo run --release
@@ -114,6 +116,8 @@ Access endpoint:
 ------------------------------------------------------------------------
 
 ### **2. Launch Next.js Dashboard**
+
+github link : [**Client Repo**](https://github.com/ktan-wolf/W3Terminal_client)
 
 📌 NOTE : Change the url to Access endpoint => (ws://127.0.0.1:8081/ws/subscribe)
 
