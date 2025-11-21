@@ -47,10 +47,8 @@ graph TD
 A full walkthrough demo of the **W3:Terminal Engine** is  available
 here:
 
-<video width="720" controls>
-  <source src="./public/demo.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+https://github.com/user-attachments/assets/6e05493e-5bb5-44d9-bfa3-85823d89d415
+
 
 ------------------------------------------------------------------------
 
