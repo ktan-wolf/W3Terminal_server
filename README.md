@@ -11,7 +11,19 @@ holographic **Next.js** frontend to visualize and capture liquidity
 fractures across Centralized (CEX) and Decentralized (DEX) exchanges in
 real-time.
 
+🔗 Live link : [**W3:Terminal**](https://w3terminal.vercel.app/)
+
 > *"The gap between price and value is where the profit lies."*
+
+------------------------------------------------------------------------
+
+## 🎥 Demo Video
+
+A full walkthrough demo of the **W3:Terminal Engine** is  available
+here:
+
+https://github.com/user-attachments/assets/6e05493e-5bb5-44d9-bfa3-85823d89d415
+
 
 ------------------------------------------------------------------------
 
@@ -39,16 +51,6 @@ graph TD
         H -->|Render| I[Live Charts & Signals]
     end
 ```
-
-------------------------------------------------------------------------
-
-## 🎥 Demo Video
-
-A full walkthrough demo of the **W3:Terminal Engine** is  available
-here:
-
-https://github.com/user-attachments/assets/6e05493e-5bb5-44d9-bfa3-85823d89d415
-
 
 ------------------------------------------------------------------------
 
@@ -101,7 +103,9 @@ Orca (Whirlpools --- Direct RPC), Raydium, Jupiter V3 API.
 
 ### **1. Run the Engine**
 
-github link : [**Server Repo**](https://github.com/ktan-wolf/W3Terminal_server) 
+github link : [**Server Repo**](https://github.com/ktan-wolf/W3Terminal_server)
+
+backend engine url : [**https://w3terminal-server.onrender.com/**](https://w3terminal-server.onrender.com/)
 
 ``` bash
 cd W3:Terminal_server

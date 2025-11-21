@@ -51,6 +51,7 @@ async fn main() {
 
     // 2. Build Router
     let app = Router::new()
+        .route("/", get(get_handler))
         .route("/ws/subscribe", get(ws_handler_subscribe))
         .with_state(app_state);
 
@@ -65,6 +66,10 @@ async fn main() {
 }
 
 // --- WebSocket Handlers ---
+
+async fn get_handler() -> &'static str {
+    "Engine is ON"
+}
 
 async fn ws_handler_subscribe(
     ws: WebSocketUpgrade,
