@@ -22,8 +22,7 @@ real-time.
 A full walkthrough demo of the **W3:Terminal Engine** is  available
 here:
 
-https://github.com/user-attachments/assets/6e05493e-5bb5-44d9-bfa3-85823d89d415
-
+https://github.com/user-attachments/assets/0d38a325-315d-448a-a4d6-4949bad06b88
 
 ------------------------------------------------------------------------
 
