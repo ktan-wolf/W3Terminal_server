@@ -49,3 +49,7 @@ pub use orca::*;
 pub mod backpack;
 #[allow(unused_imports)]
 pub use backpack::*;
+
+pub mod bitstamp;
+#[allow(unused_imports)]
+pub use bitstamp::*;

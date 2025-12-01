@@ -14,10 +14,11 @@ use axum::{
 };
 use connectors::{
     backpack::run_backpack_connector, binance::run_binance_connector,
-    bitfinex::run_bitfinex_connector, bitget::run_bitget_connector, bybit::run_bybit_connector,
-    coinbase::run_coinbase_connector, htx::run_htx_connector, jupiter::run_jupiter_connector,
-    kraken::run_kraken_connector, kucoin::run_kucoin_connector, okx::run_okx_connector,
-    orca::run_orca_connector, raydium::run_raydium_connector,
+    bitfinex::run_bitfinex_connector, bitget::run_bitget_connector,
+    bitstamp::run_bitstamp_connector, bybit::run_bybit_connector, coinbase::run_coinbase_connector,
+    htx::run_htx_connector, jupiter::run_jupiter_connector, kraken::run_kraken_connector,
+    kucoin::run_kucoin_connector, okx::run_okx_connector, orca::run_orca_connector,
+    raydium::run_raydium_connector,
 };
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
@@ -55,7 +56,7 @@ async fn main() {
         .route("/ws/subscribe", get(ws_handler_subscribe))
         .with_state(app_state);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 8081));
+    let addr = SocketAddr::from(([127, 0, 0, 1], 8081));
     println!(
         "Engine running on ws://{}/ws/subscribe (In-Memory Mode)",
         addr
@@ -134,6 +135,7 @@ async fn handle_socket_subscribe(socket: WebSocket, state: Arc<AppState>) {
     tokio::spawn(run_okx_connector(tx_price_raw.clone(), pair.clone()));
     tokio::spawn(run_raydium_connector(tx_price_raw.clone(), pair.clone()));
     tokio::spawn(run_orca_connector(tx_price_raw.clone(), pair.clone()));
+    tokio::spawn(run_bitstamp_connector(tx_price_raw, pair.clone()));
     // ... spawn others ...
 
     // 5. Spawn Arbitrage Engine
